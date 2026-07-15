@@ -1,4 +1,4 @@
-# Deploy Farikhi Football Universe v7 ke Vercel
+# Deploy Farikhi Football Universe v8 ke Vercel
 
 ## Melalui terminal
 

@@ -1,22 +1,58 @@
 {
-  "name": "Farikhi Football Universe v7.0",
-  "short_name": "FFU v7",
-  "id": "/?source=pwa-v7",
+  "name": "Farikhi Football Universe v8.0",
+  "short_name": "FFU v8",
+  "id": "/?source=pwa-v8",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
   "orientation": "any",
   "background_color": "#070c13",
   "theme_color": "#35df8d",
-  "description": "Game manajer sepak bola dengan liga Indonesia, Eropa, piramida Belanda, timnas, karier realistis, dan pertandingan 2D.",
-  "categories": ["games", "sports"],
+  "description": "Game manajer sepak bola dengan 16 liga aktif, promosi-degradasi lintas divisi, timnas, karier realistis, dan pertandingan 2D.",
+  "categories": [
+    "games",
+    "sports"
+  ],
   "icons": [
-    {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ],
   "shortcuts": [
-    {"name":"Match Centre","short_name":"Match","url":"/?route=match","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"}]},
-    {"name":"Skuad","short_name":"Skuad","url":"/?route=squad","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"}]}
+    {
+      "name": "Match Centre",
+      "short_name": "Match",
+      "url": "/?route=match",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Skuad",
+      "short_name": "Skuad",
+      "url": "/?route=squad",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

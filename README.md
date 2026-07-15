@@ -1,32 +1,47 @@
-# Farikhi Football Universe v7.0
+# Farikhi Football Universe v8.0
 
-Update utama:
+Versi siap main dengan piramida liga yang lebih besar, promosi-degradasi lintas divisi, pertandingan 2D, statistik semusim, scouting, board, kontrak, staf, tim nasional, editor, dan PWA.
 
-- Eredivisie 2025/26: 18 klub, 34 laga, zona Eropa, play-off, dan degradasi.
-- Eerste Divisie / Keuken Kampioen Divisie: 20 klub, 38 laga, dua tiket promosi langsung, play-off, dan larangan promosi tim Jong.
-- Promosi-degradasi Belanda berjalan otomatis saat pergantian musim.
-- Database pemain Belanda diperluas dengan pemain nyata terkurasi dan regen sebagai pelengkap.
-- Lebih dari 50 tim nasional dengan FIFA ranking dinamis, filter wilayah, pencarian negara, roster, pelatih, bendera, dan visual.
-- Halaman Board & Karier: target pemilik, kepercayaan board, evaluasi bulanan, kontrak manajer, kontrak pemain, role skuad, dan negosiasi gaji.
-- Dashboard baru dengan next match, posisi, keuangan, performa, quick actions, inbox, dan status board.
-- UI/UX baru untuk desktop dan HP.
-- Hamburger menu HP menampilkan seluruh halaman game.
-- PWA install prompt di Android serta panduan Add to Home Screen di iPhone/iPad.
-- Ikon PWA 192px dan 512px, offline cache v7, serta build statis siap Vercel.
-- Save v6 dimigrasikan otomatis ke v7.
+## Liga aktif
+
+- Indonesia: Liga 1 dan Liga 2
+- Inggris: Premier League dan EFL Championship
+- Spanyol: La Liga dan LaLiga Hypermotion
+- Italia: Serie A dan Serie B
+- Jerman: Bundesliga dan 2. Bundesliga
+- Prancis: Ligue 1 dan Ligue 2
+- Belanda: Eredivisie dan Eerste Divisie
+- Belgia: Jupiler Pro League dan Challenger Pro League
+
+Promosi-degradasi antar tingkat berjalan saat pergantian musim. Liga Belgia memakai transisi jumlah peserta dari struktur awal 2025/26 sebelum menjadi 18 klub di divisi utama dan 15 klub di divisi kedua pada musim berikutnya.
+
+## Isi v8
+
+- 307 klub awal dan lebih dari 3.900 pemain.
+- Struktur klub dan liga memakai snapshot 2025/26 yang dapat diedit.
+- Pemain pelengkap generatif diberi label fiksi, bukan diklaim sebagai pemain nyata.
+- Saat memilih klub dari liga baru, skuad otomatis dilengkapi minimal 18 pemain agar langsung dapat dimainkan.
+- Jadwal penuh, klasemen, statistik klub/pemain, top skor, rating, xG, assist, kartu, clean sheet, dan riwayat laga.
+- Match Centre teks dan animasi 2D dengan 22 pemain.
+- Taktik, latihan, scouting, transfer, kontrak, staf, keuangan, board, tim nasional, editor database, save/import/export.
+- Hamburger drawer lengkap dan install PWA di HP.
+- Migrasi save versi lama dilakukan otomatis. Untuk pengalaman paling bersih, save baru tetap direkomendasikan.
 
 ## Menjalankan di Windows
 
 1. Ekstrak ZIP ke folder baru.
 2. Klik `OPEN-GAME.bat`.
 3. Browser membuka `http://localhost:8080`.
-4. Aktifkan internet lalu tekan **Sinkron Visual** untuk memuat logo dan wajah yang tersedia.
+4. Pilih liga dan klub, lalu tekan **Mulai Karier**.
+5. Aktifkan internet dan tekan **Sinkron Visual** bila ingin memuat logo/foto yang tersedia.
+
+Jangan membuka `index.html` melalui `file://` untuk permainan utama. Browser dapat memblokir penyimpanan, service worker, dan request visual.
 
 ## Install di HP
 
-Cara terbaik adalah deploy ke Vercel lalu buka URL HTTPS di Chrome/Safari.
+Deploy proyek ke Vercel, lalu buka URL HTTPS dari HP.
 
-- Android: tekan tombol **Install** yang muncul di game.
+- Android: tekan tombol **Install FFU** di game atau menu Chrome → Install app.
 - iPhone/iPad: Safari → Share → Add to Home Screen.
 
 ## Deploy Vercel
@@ -35,3 +50,5 @@ Cara terbaik adalah deploy ke Vercel lalu buka URL HTTPS di Chrome/Safari.
 npm run build
 npx vercel --prod
 ```
+
+Output statis berada di folder `dist`.
