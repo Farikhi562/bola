@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#090d14" />
+  <meta name="description" content="Farikhi Football Universe - game manajer sepak bola PWA offline." />
+  <title>Farikhi Football Universe</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="toast" class="toast" aria-live="polite"></div>
+  <div id="modal-root"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">FFU</div>
+      <div>
+        <h1>Farikhi Football Universe</h1>
+        <p id="club-subtitle">Musim 2025/2026</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="install-btn" class="ghost hidden">Install PWA</button>
+      <button id="advance-week" class="primary">Lanjut 1 Minggu</button>
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigasi utama">
+      <button data-route="dashboard" class="nav-item active">⌂ <span>Dashboard</span></button>
+      <button data-route="squad" class="nav-item">♟ <span>Skuad</span></button>
+      <button data-route="tactics" class="nav-item">▦ <span>Taktik</span></button>
+      <button data-route="match" class="nav-item">▶ <span>Pertandingan</span></button>
+      <button data-route="transfer" class="nav-item">⇄ <span>Transfer</span></button>
+      <button data-route="scouting" class="nav-item">⌕ <span>Scouting</span></button>
+      <button data-route="staff" class="nav-item">♜ <span>Staf</span></button>
+      <button data-route="finance" class="nav-item">Rp <span>Keuangan</span></button>
+      <button data-route="competitions" class="nav-item">🏆 <span>Kompetisi</span></button>
+      <button data-route="admin" class="nav-item">⚙ <span>Admin Database</span></button>
+      <button data-route="save" class="nav-item">▣ <span>Save & Data</span></button>
+    </aside>
+
+    <main id="app" class="main-content" tabindex="-1"></main>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Navigasi seluler">
+    <button data-route="dashboard" class="nav-item active">⌂<span>Home</span></button>
+    <button data-route="squad" class="nav-item">♟<span>Skuad</span></button>
+    <button data-route="match" class="nav-item">▶<span>Match</span></button>
+    <button data-route="transfer" class="nav-item">⇄<span>Transfer</span></button>
+    <button data-route="admin" class="nav-item">⚙<span>Admin</span></button>
+  </nav>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
