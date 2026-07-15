@@ -1,4 +1,4 @@
-const CACHE='ffu-v80-cache-1';
+const CACHE='ffu-v90-cache-1';
 const FILES=['/','/index.html','/FFU-Standalone.html','/manifest.webmanifest','/RESET-GAME.html','/icons/icon-192.png','/icons/icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));

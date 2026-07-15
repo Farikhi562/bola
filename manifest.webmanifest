@@ -1,7 +1,7 @@
 {
-  "name": "Farikhi Football Universe v8.0",
-  "short_name": "FFU v8",
-  "id": "/?source=pwa-v8",
+  "name": "Farikhi Football Universe v9.0",
+  "short_name": "FFU v9",
+  "id": "./?v=9.0.0",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -12,7 +12,7 @@
   "orientation": "any",
   "background_color": "#070c13",
   "theme_color": "#35df8d",
-  "description": "Game manajer sepak bola dengan 16 liga aktif, promosi-degradasi lintas divisi, timnas, karier realistis, dan pertandingan 2D.",
+  "description": "Game manajer sepak bola PWA dengan transfer advanced, Ballon d’Or, riwayat trofi, dan 62 tim nasional.",
   "categories": [
     "games",
     "sports"

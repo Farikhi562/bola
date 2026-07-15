@@ -1,8 +1,8 @@
 {
   "name": "farikhi-football-universe",
-  "version": "8.0.0",
+  "version": "9.0.0",
   "private": true,
-  "description": "FFU v8 - 16 active leagues across 8 countries, linked promotion and relegation, expanded career realism, 2D matches, and installable PWA",
+  "description": "Farikhi Football Universe v9 - advanced transfer search, animated negotiations, awards, trophies, and 62 national teams.",
   "scripts": {
     "dev": "npx --yes serve . -l 3000",
     "build": "node build.mjs"
