@@ -1,13 +1,11 @@
 {
   "name": "farikhi-football-universe",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "private": true,
-  "description": "Farikhi Football Universe v6 - Liga 2 Indonesia, promotion/relegation, regional competitions, and expanded visual sync",
+  "description": "FFU v7 - Dutch two-tier pyramid, expanded national teams, board career realism, premium mobile UI, and installable PWA",
   "scripts": {
     "dev": "npx --yes serve . -l 3000",
     "build": "node build.mjs"
   },
-  "engines": {
-    "node": ">=20"
-  }
+  "engines": {"node": ">=20"}
 }

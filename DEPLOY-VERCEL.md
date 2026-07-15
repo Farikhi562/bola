@@ -1,32 +1,20 @@
-# Deploy Farikhi Football Universe v3 ke Vercel
+# Deploy Farikhi Football Universe v7 ke Vercel
 
-## Cara paling gampang lewat dashboard
-1. Ekstrak ZIP.
-2. Upload folder ini ke repository GitHub baru.
-3. Buka Vercel, pilih **Add New > Project**.
-4. Import repository tadi.
-5. Framework Preset: **Other**.
-6. Build Command dan Output Directory akan terbaca dari `vercel.json`.
-7. Klik **Deploy**.
-
-## Lewat terminal
-Pastikan Node.js sudah terpasang, lalu jalankan dari folder proyek:
-
-```bash
-npm install -g vercel
-vercel
-```
-
-Untuk production:
-
-```bash
-vercel --prod
-```
-
-## Tes build sebelum deploy
+## Melalui terminal
 
 ```bash
 npm run build
+npx vercel --prod
 ```
 
-Hasil static build berada di folder `dist/`.
+Output build berada di folder `dist` dan `vercel.json` sudah menunjuk ke folder tersebut.
+
+## Melalui dashboard Vercel
+
+1. Buat repository GitHub dan unggah seluruh folder proyek.
+2. Import repository tersebut di Vercel.
+3. Build command: `npm run build`.
+4. Output directory: `dist`.
+5. Deploy.
+
+Setelah memakai URL HTTPS Vercel, browser HP dapat menampilkan prompt install PWA. Pada iPhone, gunakan Safari → Share → Add to Home Screen.

@@ -1,34 +1,37 @@
-# Farikhi Football Universe v6.0
+# Farikhi Football Universe v7.0
 
-Update besar v6:
+Update utama:
 
-- Liga 2 Indonesia / Pegadaian Championship berisi 20 klub musim 2025/26, dibagi Grup Barat dan Grup Timur.
-- Format 27 pertandingan per klub dengan triple round robin di dalam grup.
-- Promosi dan degradasi otomatis saat pergantian musim:
-  - juara masing-masing grup promosi langsung,
-  - runner-up memperebutkan tiket promosi ketiga,
-  - juru kunci masing-masing grup turun langsung,
-  - peringkat 9 menjalani simulasi play-off degradasi.
-- Tiga klub terbawah Liga 1 turun ke Liga 2.
-- Kompetisi regional: UEFA Champions League, Europa League, Conference League, AFC Champions League Two, dan ASEAN Club Championship Shopee Cup.
-- Logo klub memakai sinkronisasi TheSportsDB dengan fallback Wikipedia.
-- Wajah pemain dan pelatih nyata memakai sumber visual publik saat tersedia.
-- Staf fiksi memakai avatar generatif dan ditandai jelas agar tidak menyamar sebagai orang nyata.
-- Tim nasional memiliki bendera SVG, lambang timnas, foto pelatih, roster, ranking, dan riwayat pertandingan.
-- Tetap mendukung save lama v5.2 dan migrasi otomatis.
+- Eredivisie 2025/26: 18 klub, 34 laga, zona Eropa, play-off, dan degradasi.
+- Eerste Divisie / Keuken Kampioen Divisie: 20 klub, 38 laga, dua tiket promosi langsung, play-off, dan larangan promosi tim Jong.
+- Promosi-degradasi Belanda berjalan otomatis saat pergantian musim.
+- Database pemain Belanda diperluas dengan pemain nyata terkurasi dan regen sebagai pelengkap.
+- Lebih dari 50 tim nasional dengan FIFA ranking dinamis, filter wilayah, pencarian negara, roster, pelatih, bendera, dan visual.
+- Halaman Board & Karier: target pemilik, kepercayaan board, evaluasi bulanan, kontrak manajer, kontrak pemain, role skuad, dan negosiasi gaji.
+- Dashboard baru dengan next match, posisi, keuangan, performa, quick actions, inbox, dan status board.
+- UI/UX baru untuk desktop dan HP.
+- Hamburger menu HP menampilkan seluruh halaman game.
+- PWA install prompt di Android serta panduan Add to Home Screen di iPhone/iPad.
+- Ikon PWA 192px dan 512px, offline cache v7, serta build statis siap Vercel.
+- Save v6 dimigrasikan otomatis ke v7.
 
 ## Menjalankan di Windows
 
 1. Ekstrak ZIP ke folder baru.
 2. Klik `OPEN-GAME.bat`.
 3. Browser membuka `http://localhost:8080`.
-4. Aktifkan internet lalu tekan **Sinkron Visual** untuk memuat logo/foto.
+4. Aktifkan internet lalu tekan **Sinkron Visual** untuk memuat logo dan wajah yang tersedia.
 
-Bisa membuka `FFU-Standalone.html` langsung, tetapi server lokal lebih stabil untuk visual, PWA, dan penyimpanan.
+## Install di HP
+
+Cara terbaik adalah deploy ke Vercel lalu buka URL HTTPS di Chrome/Safari.
+
+- Android: tekan tombol **Install** yang muncul di game.
+- iPhone/iPad: Safari → Share → Add to Home Screen.
 
 ## Deploy Vercel
 
 ```bash
 npm run build
-vercel --prod
+npx vercel --prod
 ```

@@ -1,10 +1,22 @@
 {
-  "name": "Farikhi Football Universe v6.0",
-  "short_name": "FFU v6",
+  "name": "Farikhi Football Universe v7.0",
+  "short_name": "FFU v7",
+  "id": "/?source=pwa-v7",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#090d14",
-  "theme_color": "#28d17c",
-  "description": "Game manajer sepak bola dengan Liga 2 Indonesia, promosi-degradasi, kompetisi regional, timnas, dan visual staf."
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#070c13",
+  "theme_color": "#35df8d",
+  "description": "Game manajer sepak bola dengan liga Indonesia, Eropa, piramida Belanda, timnas, karier realistis, dan pertandingan 2D.",
+  "categories": ["games", "sports"],
+  "icons": [
+    {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ],
+  "shortcuts": [
+    {"name":"Match Centre","short_name":"Match","url":"/?route=match","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"}]},
+    {"name":"Skuad","short_name":"Skuad","url":"/?route=squad","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"}]}
+  ]
 }
