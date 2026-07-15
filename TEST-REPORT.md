@@ -1,23 +1,13 @@
-# FFU v12 Test Report
+# FFU v12.1 Test Report
 
-Tanggal pengujian: 16 Juli 2026
-
-## Pemeriksaan yang lolos
-
-- Build produksi `npm run build`.
-- Seluruh blok JavaScript lolos `node --check`.
-- Halaman onboarding tampil dan klub dapat dipilih.
-- Karier baru berhasil dibuat.
-- Dashboard dan navigasi desktop tampil.
-- Hamburger menu HP menampilkan seluruh halaman.
-- Match Centre menampilkan 22 pemain.
-- Intro stadion/tunnel/starting XI dapat diputar dan dilewati.
-- Broadcast scoreboard dan lapisan cuaca tampil.
-- Mode grafis, highlight, kamera, intro, ambience dan tombol install dapat digunakan.
-- Pertandingan dapat diselesaikan dan statistik laga tersimpan.
-- Full-time presentation dan Player of the Match tampil.
-- Tidak ditemukan page error JavaScript pada smoke test desktop/HP.
-
-## Catatan
-
-Foto pemain, logo klub, staf dan tim nasional berasal dari sumber visual publik. Item yang tidak tersedia tetap memakai fallback inisial/avatar. Ketersediaan gambar tergantung koneksi internet dan layanan sumber visual.
+- JavaScript syntax: PASS (`node --check`)
+- Static build: PASS (`node build.mjs`)
+- Onboarding pilih klub: PASS
+- Tombol Skip Akhir Musim terkunci sebelum pilih klub: PASS
+- Tombol aktif setelah karier dimulai: PASS
+- Simulasi dari minggu 43 sampai musim baru: PASS
+- Promosi/degradasi dan reset jadwal musim baru: PASS
+- Ringkasan posisi akhir dan musim baru: PASS
+- AI transfer profile untuk klub promosi baru: PASS
+- Tampilan tombol mobile menjadi ikon ⏭: PASS (CSS responsive)
+- Tidak ada runtime exception dari proses skip: PASS

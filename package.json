@@ -1,8 +1,8 @@
 {
   "name": "farikhi-football-universe",
-  "version": "12.0.0",
+  "version": "12.1.0",
   "private": true,
-  "description": "Farikhi Football Universe v12 - cinematic matchday, adaptive 2D broadcast engine, ceremonies, living AI clubs, transfers, media, medical, academy and career systems.",
+  "description": "Farikhi Football Universe v12 - cinematic matchday, skip-to-season-end, adaptive 2D broadcast engine, ceremonies, living AI clubs, transfers, media, medical, academy and career systems.",
   "scripts": {
     "dev": "node build.mjs && npx --yes serve dist -l 3000",
     "build": "node build.mjs"

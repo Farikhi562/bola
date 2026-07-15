@@ -1,3 +1,11 @@
+# FFU v12.1
+
+- Tombol Skip ke Akhir Musim dengan konfirmasi dan progress real-time.
+- Semua sistem mingguan tetap diproses: pertandingan, transfer AI, medis, akademi, scouting, ekonomi, penghargaan, promosi dan degradasi.
+- Bisa menghentikan simulasi di tengah jalan tanpa kehilangan progres.
+- Ringkasan posisi akhir, rekor, trofi dan penghargaan setelah musim selesai.
+- Cache PWA diperbarui ke v12.1.
+
 # Changelog
 
 ## v12.0.0 - Cinematic Matchday Expansion

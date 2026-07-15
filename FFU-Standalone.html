@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <title>Farikhi Football Universe v12.0</title>
+  <title>Farikhi Football Universe v12.1</title>
   
   
   <style>
@@ -363,6 +363,19 @@ body{background:radial-gradient(circle at 8% -5%,rgba(81,168,255,.17),transparen
 }
 @media(max-width:420px){.quick-grid-v7{grid-template-columns:1fr}.hero-club-v7 h2{font-size:25px}.page-head h2{font-size:25px}.main-content{padding-left:9px;padding-right:9px}.card{padding:13px;border-radius:17px}}
 
+
+/* v12.1: skip-to-season-end progress UX */
+.season-skip-btn{white-space:nowrap}
+.season-skip-overlay-v121{position:fixed;inset:0;z-index:10050;background:rgba(1,7,5,.88);backdrop-filter:blur(12px);display:grid;place-items:center;padding:18px}
+.season-skip-card-v121{width:min(620px,94vw);background:linear-gradient(145deg,#0b1712,#07100d);border:1px solid rgba(95,245,169,.28);border-radius:24px;padding:22px;box-shadow:0 28px 80px rgba(0,0,0,.55)}
+.season-skip-card-v121 h2{margin:0 0 7px;font-size:clamp(24px,5vw,36px)}
+.season-skip-progress-v121{height:14px;background:#14221c;border:1px solid rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin:18px 0 9px}
+.season-skip-progress-v121 i{display:block;height:100%;width:0;background:linear-gradient(90deg,#25ca79,#70f2b1);box-shadow:0 0 20px rgba(48,224,135,.45);transition:width .16s ease}
+.season-skip-stats-v121{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px}
+.season-skip-stats-v121 div{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:12px;text-align:center}
+.season-skip-stats-v121 span{display:block;color:var(--muted);font-size:11px}.season-skip-stats-v121 strong{display:block;font-size:20px;margin-top:3px}
+@media(max-width:700px){.top-actions .season-skip-btn{display:inline-flex!important;width:43px;height:43px;padding:0;font-size:0;align-items:center;justify-content:center}.top-actions .season-skip-btn:after{content:"⏭";font-size:17px}.season-skip-stats-v121{grid-template-columns:1fr 1fr}.season-skip-card-v121{padding:17px;border-radius:19px}}
+
 </style>
 
 
@@ -414,6 +427,7 @@ body{background:radial-gradient(circle at 8% -5%,rgba(81,168,255,.17),transparen
     <div class="top-actions">
       <button id="visual-sync-btn" class="ghost" title="Muat ulang logo, wajah, dan bendera">Sinkron Visual</button>
       <button id="install-btn" class="ghost hidden">Install PWA</button>
+      <button id="skip-season" class="ghost season-skip-btn" title="Simulasikan seluruh pekan tersisa">Skip Akhir Musim</button>
       <button id="advance-week" class="primary">Lanjut 1 Minggu</button>
     </div>
   </header>
@@ -2399,8 +2413,75 @@ bindPage=function bindPageV12(){bindPageBeforeV12();bindV12()};
 const renderBeforeV12=render;
 render=function renderV12(){state=ensureV12State(state);document.body.classList.remove('v12-page-enter');renderBeforeV12();applyQualityV12();requestAnimationFrame(()=>document.body.classList.add('v12-page-enter'));bindV12();animateCinematicV12();state.version=FFU_V12_VERSION};
 const renderClubSelectionBeforeV12=renderClubSelection;
-renderClubSelection=function renderClubSelectionV12(){return renderClubSelectionBeforeV12().replace(/NEW CAREER · [^<]+/,'NEW CAREER · 12.0.0').replace(/Database v11[^<]*/,'Database v12 · cinematic matchday, broadcast engine, ceremony studio, dan animasi 2D adaptif')};
+renderClubSelection=function renderClubSelectionV12(){return renderClubSelectionBeforeV12().replace(/NEW CAREER · [^<]+/,'NEW CAREER · 12.1.0').replace(/Database v11[^<]*/,'Database v12.1 · cinematic matchday, simulasi akhir musim, dan animasi 2D adaptif')};
 state=ensureV12State(state);saveState();render();
+
+// v12.1: skip to end of season without breaking weekly simulation systems
+const FFU_V121_VERSION='12.1.0';
+let skipSeasonRuntimeV121=null;
+const processAITransferBeforeV121=processAITransferMarketV11;
+processAITransferMarketV11=function processAITransferMarketV121(...args){state.clubs.forEach(c=>{if(!c.aiProfileV11)c.aiProfileV11=aiProfileV11(c)});return processAITransferBeforeV121(...args)};
+const finishSeasonBeforeV121=finishSeasonV6;
+finishSeasonV6=function finishSeasonV121(){
+  if(state.week>46&&state.season){const c=managerClub(),rows=c?currentTable(c.league):[],idx=c?rows.findIndex(r=>r.clubId===c.id):-1,r=idx>=0?rows[idx]:null;state.lastSeasonSummaryV121={season:state.season,clubId:c?.id||null,clubName:c?.name||'-',league:c?.league||'-',position:idx>=0?idx+1:null,points:r?.pts||0,played:r?.p||0,w:r?.w||0,d:r?.d||0,l:r?.l||0,gf:r?.gf||0,ga:r?.ga||0};}
+  return finishSeasonBeforeV121();
+};
+function remainingSeasonInfoV121(){
+  const domestic=(state.fixtures||[]).filter(f=>!f.played).length;
+  const regional=(state.regionalCompetitions||[]).reduce((n,c)=>n+(c.fixtures||[]).filter(f=>!f.played).length,0);
+  const targetWeek=Math.max(47,Math.max(0,...(state.fixtures||[]).filter(f=>!f.played).map(f=>Number(f.week)||0))+1);
+  return {domestic,regional,targetWeek,weeks:Math.max(1,targetWeek-(Number(state.week)||1))};
+}
+function openSkipSeasonV121(){
+  if(!state?.onboardingComplete||!state?.manager?.clubId||!managerClub())return toast('Pilih klub dulu. Masa skip musim sebelum punya pekerjaan, dongo.');
+  if(matchRuntime)return toast('Selesaikan pertandingan yang sedang berjalan dulu. Jangan time travel saat bola masih muter.');
+  if(skipSeasonRuntimeV121)return toast('Simulasi akhir musim sedang berjalan.');
+  const info=remainingSeasonInfoV121(),c=managerClub(),row=currentTable(c.league).find(r=>r.clubId===c.id),pos=currentTable(c.league).findIndex(r=>r.clubId===c.id)+1;
+  modal('Skip ke Akhir Musim',`<section class="card"><h3>${c.name} · ${state.season}</h3><p>Semua pekan tersisa akan disimulasikan. Transfer AI, cedera, latihan, akademi, scouting, keuangan, penghargaan, kompetisi regional, promosi, dan degradasi tetap diproses.</p><div class="grid grid-4"><div class="stat-card"><span>Posisi saat ini</span><strong>${pos||'-'}</strong></div><div class="stat-card"><span>Poin</span><strong>${row?.pts||0}</strong></div><div class="stat-card"><span>Laga domestik</span><strong>${info.domestic}</strong></div><div class="stat-card"><span>Estimasi pekan</span><strong>${info.weeks}</strong></div></div><p class="muted" style="margin-top:12px">Autosave dibuat setelah proses selesai atau dihentikan. Pertandingan klub lu ikut disimulasikan otomatis.</p></section>`,`<button data-close-modal class="ghost">Batal</button><button id="confirm-skip-season-v121" class="primary">⏭ Mulai Simulasi</button>`);
+  const btn=$('#confirm-skip-season-v121');if(btn)btn.onclick=skipToEndSeasonV121;
+}
+function snapshotManagerSeasonV121(){
+  const c=managerClub();if(!c)return null;const league=c.league,rows=currentTable(league),idx=rows.findIndex(r=>r.clubId===c.id),r=rows[idx];return {clubId:c.id,clubName:c.name,league,position:idx>=0?idx+1:null,points:r?.pts||0,played:r?.p||0,w:r?.w||0,d:r?.d||0,l:r?.l||0,gf:r?.gf||0,ga:r?.ga||0};
+}
+function createSkipOverlayV121(oldSeason,total){
+  const wrap=document.createElement('div');wrap.id='season-skip-overlay-v121';wrap.className='season-skip-overlay-v121';wrap.innerHTML=`<div class="season-skip-card-v121"><span class="badge good">SIMULASI MUSIM</span><h2>Melaju ke akhir ${oldSeason}</h2><p id="season-skip-copy-v121" class="muted">Memproses jadwal, transfer AI, latihan, medis, akademi, dan ekonomi klub.</p><div class="season-skip-progress-v121"><i id="season-skip-bar-v121"></i></div><div class="season-skip-stats-v121"><div><span>Pekan diproses</span><strong id="season-skip-step-v121">0/${total}</strong></div><div><span>Minggu game</span><strong id="season-skip-week-v121">${state.week}</strong></div><div><span>Musim</span><strong id="season-skip-season-v121">${state.season}</strong></div></div><div class="toolbar" style="justify-content:flex-end;margin-top:16px"><button id="cancel-season-skip-v121" class="danger">Hentikan</button></div></div>`;document.body.appendChild(wrap);return wrap;
+}
+async function skipToEndSeasonV121(){
+  if(skipSeasonRuntimeV121||matchRuntime)return;
+  closeModal();
+  const oldSeason=state.season,info=remainingSeasonInfoV121(),total=Math.min(70,Math.max(1,info.weeks+3)),startTrophies=(state.trophyHistory||[]).length,startAwards=(state.awardsHistory||[]).length;
+  const overlay=createSkipOverlayV121(oldSeason,total);skipSeasonRuntimeV121={cancelled:false,oldSeason};
+  const cancel=$('#cancel-season-skip-v121');if(cancel)cancel.onclick=()=>{skipSeasonRuntimeV121.cancelled=true;cancel.disabled=true;cancel.textContent='Menghentikan…'};
+  const originals={render,saveState,toast,showTrophyCeremonyV12,showAwardCeremonyV12};
+  let loops=0,finalSnapshot=snapshotManagerSeasonV121(),error=null;
+  try{
+    render=()=>{};saveState=()=>{};toast=()=>{};showTrophyCeremonyV12=()=>{};showAwardCeremonyV12=()=>{};
+    while(state.season===oldSeason&&loops<70&&!skipSeasonRuntimeV121.cancelled){
+      const beforeWeek=state.week,beforeSeason=state.season,snap=snapshotManagerSeasonV121();
+      advanceWeek();loops++;
+      if(state.season!==beforeSeason)finalSnapshot=snap;else finalSnapshot=snapshotManagerSeasonV121()||finalSnapshot;
+      const pct=Math.min(100,Math.round((loops/total)*100));
+      const bar=$('#season-skip-bar-v121'),step=$('#season-skip-step-v121'),week=$('#season-skip-week-v121'),season=$('#season-skip-season-v121'),copy=$('#season-skip-copy-v121');
+      if(bar)bar.style.width=pct+'%';if(step)step.textContent=`${loops}/${total}`;if(week)week.textContent=state.week;if(season)season.textContent=state.season;if(copy)copy.textContent=`Pekan ${beforeWeek} selesai · ${state.fixtures.filter(f=>f.played).length} laga domestik tercatat.`;
+      if(beforeWeek===state.week&&beforeSeason===state.season)throw new Error('Simulasi tidak bergerak.');
+      if(loops%2===0)await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
+    }
+  }catch(e){error=e;console.error('Skip season failed',e)}finally{
+    render=originals.render;saveState=originals.saveState;toast=originals.toast;showTrophyCeremonyV12=originals.showTrophyCeremonyV12;showAwardCeremonyV12=originals.showAwardCeremonyV12;
+  }
+  const cancelled=skipSeasonRuntimeV121?.cancelled;skipSeasonRuntimeV121=null;state.version=FFU_V121_VERSION;originals.saveState();originals.render();overlay.remove();
+  if(error)return originals.toast('Skip musim gagal: '+error.message);
+  if(cancelled)return originals.toast(`Simulasi dihentikan di minggu ${state.week}. Progress tetap tersimpan.`);
+  finalSnapshot=(state.lastSeasonSummaryV121?.season===oldSeason?state.lastSeasonSummaryV121:finalSnapshot);const trophies=(state.trophyHistory||[]).slice(startTrophies).filter(x=>x.season===oldSeason),awards=(state.awardsHistory||[]).slice(startAwards).filter(x=>x.season===oldSeason),newSeason=state.season;
+  modal(`Musim ${oldSeason} Selesai`,`<section class="card"><div class="grid grid-4"><div class="stat-card"><span>Posisi akhir</span><strong>${finalSnapshot?.position||'-'}</strong></div><div class="stat-card"><span>Poin</span><strong>${finalSnapshot?.points||0}</strong></div><div class="stat-card"><span>Rekor</span><strong>${finalSnapshot?`${finalSnapshot.w}-${finalSnapshot.d}-${finalSnapshot.l}`:'-'}</strong></div><div class="stat-card"><span>Musim baru</span><strong>${newSeason}</strong></div></div><div class="grid grid-2" style="margin-top:14px"><div><h3>Trofi Baru</h3><div class="list">${trophies.map(t=>`<div class="list-row"><span>🏆 ${t.title}</span><strong>${t.clubName}</strong></div>`).join('')||'<div class="empty">Belum ada trofi. Sepak bola memang kejam, bukan sinetron.</div>'}</div></div><div><h3>Penghargaan</h3><div class="list">${awards.slice(0,8).map(a=>`<div class="list-row"><span>${a.title}</span><strong>${a.playerName}</strong></div>`).join('')||'<div class="empty">Tidak ada penghargaan baru untuk klub lu.</div>'}</div></div></div><p class="muted" style="margin-top:12px">${loops} pekan disimulasikan lengkap. Promosi-degradasi dan jadwal musim baru sudah dibentuk.</p></section>`,`<button data-close-modal class="primary">Mulai Musim ${newSeason}</button>`);
+}
+function bindV121(){
+  const b=$('#skip-season');if(b){b.disabled=!state?.onboardingComplete||!state?.manager?.clubId||!!matchRuntime||!!skipSeasonRuntimeV121;b.onclick=openSkipSeasonV121;}
+}
+const bindPageBeforeV121=bindPage;bindPage=function bindPageV121(){bindPageBeforeV121();bindV121()};
+const renderBeforeV121=render;render=function renderV121(){renderBeforeV121();bindV121();state.version=FFU_V121_VERSION};
+state.version=FFU_V121_VERSION;saveState();render();
+
 </script>
 
 </body>

@@ -1,4 +1,4 @@
-# Farikhi Football Universe v12.0
+# Farikhi Football Universe v12.1.0
 
 FFU v12 adalah game manajer sepak bola PWA offline-first dengan cinematic matchday, animasi 2D adaptif, klub AI hidup, transfer realistis, kompetisi multi-negara, tim nasional, media, medis, akademi, stadion, bisnis, penghargaan, modding, dan cloud save Supabase opsional.
 
@@ -38,3 +38,7 @@ FFU_DEFAULT_CLOUD_SLOT=karier-utama
 ```
 
 Jangan taruh service role key di frontend.
+
+
+## Skip ke Akhir Musim
+Gunakan tombol **Skip Akhir Musim** di header. Game tetap mensimulasikan seluruh sistem mingguan dan membuat autosave setelah proses selesai atau dihentikan.
