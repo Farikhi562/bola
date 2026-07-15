@@ -1,8 +1,8 @@
 {
   "name": "farikhi-football-universe",
-  "version": "3.0.0",
+  "version": "5.2.0",
   "private": true,
-  "description": "Farikhi Football Universe v3 - offline football manager PWA",
+  "description": "Farikhi Football Universe v5.2 - storage-safe football manager PWA with real visual sync",
   "scripts": {
     "dev": "npx --yes serve . -l 3000",
     "build": "node build.mjs"

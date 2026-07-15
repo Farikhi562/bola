@@ -1,27 +1,28 @@
-# Farikhi Football Universe v3.0
+# Farikhi Football Universe v5.2
 
-Game manajer sepak bola PWA/offline buatan Muhamad Fauzan Al Farikhi.
+Perbaikan utama v5.2:
 
-## Mulai cepat
-- Tanpa instalasi: buka `FFU-Standalone.html` di Chrome atau Edge.
-- Mode PWA lokal Windows: jalankan `start-windows.bat`, lalu buka `http://localhost:8080`.
-- Mode development Node: jalankan `npm run dev`.
+- Memperbaiki layar dashboard kosong akibat ukuran save v5.1 melebihi kuota `localStorage` browser.
+- Save sekarang dipadatkan secara otomatis dan save lama v5.1 dimigrasikan.
+- Jika penyimpanan penuh, game membersihkan key lama dan tetap menjalankan UI.
+- Ada layar error boot dan tombol reset, jadi kegagalan tidak lagi menghasilkan halaman hitam kosong.
+- Sinkronisasi logo klub dan wajah pemain nyata tetap tersedia melalui internet.
+- Bendera negara menggunakan SVG dari FlagCDN dan memiliki fallback teks.
 
-## Fitur v3
-- Wajib memilih klub sebelum karier dimulai.
-- Enam liga aktif: Liga 1, Premier League, La Liga, Serie A, Bundesliga, dan Ligue 1.
-- 114 klub liga dengan ekonomi, reputasi, stadion, dan budget berbeda.
-- Database pemain nyata terkurasi musim 2025/26, ditambah pemain akademi/regens yang ditandai sebagai fiksi.
-- 16 tim nasional dengan roster nyata terkurasi dan simulasi pertandingan internasional.
-- Editor penuh untuk menambah, mengedit, dan menghapus pemain, klub, staf, serta timnas fiksi.
-- Klub fiksi otomatis memperoleh skuad dan jadwal liga dibangun ulang.
-- Taktik lanjutan: 6 formasi, mentalitas, tempo, pressing, garis pertahanan, build-up, gaya passing, transisi, fokus serangan, bola mati, dan role pemain.
-- Staf spesialis memiliki penjelasan fungsi, atribut, tugas mingguan, workload, laporan, gaji, dan efek gameplay.
-- Scouting, transfer, kontrak, latihan, keuangan, sponsor, pertandingan teks live, save/load, ekspor/impor JSON, dan PWA offline.
-- Siap deploy ke Vercel melalui `vercel.json` dan build statis ke `dist/`.
+## Cara paling aman di Windows
 
-## Catatan database
-Data pemain merupakan snapshot terkurasi untuk pengalaman game, bukan feed lisensi komersial atau database live. Transfer dan skuad dunia nyata dapat berubah. Semua data dapat diperbarui dari halaman Admin Database.
+1. Ekstrak ZIP ke folder baru.
+2. Jalankan `start-windows.bat`.
+3. Browser akan membuka `http://localhost:8080`.
+4. Tunggu database selesai dimuat.
 
-## Deploy
-Baca `DEPLOY-VERCEL.md`.
+Bisa juga membuka `FFU-Standalone.html` langsung. Namun server lokal lebih stabil untuk PWA, cache, gambar, dan save.
+
+Jika masih ada masalah dari save lama, buka `RESET-GAME.html` satu kali.
+
+## Vercel
+
+```bash
+npm run build
+vercel --prod
+```
