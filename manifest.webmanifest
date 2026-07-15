@@ -1,10 +1,10 @@
 {
-  "name": "Farikhi Football Universe v5.2",
-  "short_name": "FFU v5.2",
+  "name": "Farikhi Football Universe v6.0",
+  "short_name": "FFU v6",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#090d14",
   "theme_color": "#28d17c",
-  "description": "Game manajer sepak bola offline dengan enam liga, tim nasional, editor database, dan delegasi staf."
+  "description": "Game manajer sepak bola dengan Liga 2 Indonesia, promosi-degradasi, kompetisi regional, timnas, dan visual staf."
 }

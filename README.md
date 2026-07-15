@@ -1,26 +1,32 @@
-# Farikhi Football Universe v5.2
+# Farikhi Football Universe v6.0
 
-Perbaikan utama v5.2:
+Update besar v6:
 
-- Memperbaiki layar dashboard kosong akibat ukuran save v5.1 melebihi kuota `localStorage` browser.
-- Save sekarang dipadatkan secara otomatis dan save lama v5.1 dimigrasikan.
-- Jika penyimpanan penuh, game membersihkan key lama dan tetap menjalankan UI.
-- Ada layar error boot dan tombol reset, jadi kegagalan tidak lagi menghasilkan halaman hitam kosong.
-- Sinkronisasi logo klub dan wajah pemain nyata tetap tersedia melalui internet.
-- Bendera negara menggunakan SVG dari FlagCDN dan memiliki fallback teks.
+- Liga 2 Indonesia / Pegadaian Championship berisi 20 klub musim 2025/26, dibagi Grup Barat dan Grup Timur.
+- Format 27 pertandingan per klub dengan triple round robin di dalam grup.
+- Promosi dan degradasi otomatis saat pergantian musim:
+  - juara masing-masing grup promosi langsung,
+  - runner-up memperebutkan tiket promosi ketiga,
+  - juru kunci masing-masing grup turun langsung,
+  - peringkat 9 menjalani simulasi play-off degradasi.
+- Tiga klub terbawah Liga 1 turun ke Liga 2.
+- Kompetisi regional: UEFA Champions League, Europa League, Conference League, AFC Champions League Two, dan ASEAN Club Championship Shopee Cup.
+- Logo klub memakai sinkronisasi TheSportsDB dengan fallback Wikipedia.
+- Wajah pemain dan pelatih nyata memakai sumber visual publik saat tersedia.
+- Staf fiksi memakai avatar generatif dan ditandai jelas agar tidak menyamar sebagai orang nyata.
+- Tim nasional memiliki bendera SVG, lambang timnas, foto pelatih, roster, ranking, dan riwayat pertandingan.
+- Tetap mendukung save lama v5.2 dan migrasi otomatis.
 
-## Cara paling aman di Windows
+## Menjalankan di Windows
 
 1. Ekstrak ZIP ke folder baru.
-2. Jalankan `start-windows.bat`.
-3. Browser akan membuka `http://localhost:8080`.
-4. Tunggu database selesai dimuat.
+2. Klik `OPEN-GAME.bat`.
+3. Browser membuka `http://localhost:8080`.
+4. Aktifkan internet lalu tekan **Sinkron Visual** untuk memuat logo/foto.
 
-Bisa juga membuka `FFU-Standalone.html` langsung. Namun server lokal lebih stabil untuk PWA, cache, gambar, dan save.
+Bisa membuka `FFU-Standalone.html` langsung, tetapi server lokal lebih stabil untuk visual, PWA, dan penyimpanan.
 
-Jika masih ada masalah dari save lama, buka `RESET-GAME.html` satu kali.
-
-## Vercel
+## Deploy Vercel
 
 ```bash
 npm run build

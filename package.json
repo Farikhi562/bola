@@ -1,8 +1,8 @@
 {
   "name": "farikhi-football-universe",
-  "version": "5.2.0",
+  "version": "6.0.0",
   "private": true,
-  "description": "Farikhi Football Universe v5.2 - storage-safe football manager PWA with real visual sync",
+  "description": "Farikhi Football Universe v6 - Liga 2 Indonesia, promotion/relegation, regional competitions, and expanded visual sync",
   "scripts": {
     "dev": "npx --yes serve . -l 3000",
     "build": "node build.mjs"
