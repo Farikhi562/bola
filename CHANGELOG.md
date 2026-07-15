@@ -1,15 +1,14 @@
 # Changelog
 
-## v11.0.0
+## v12.0.0 - Cinematic Matchday Expansion
 
-- Menambahkan Dunia Klub dan profil lengkap klub.
-- Menambahkan profil pelatih, riwayat karier pemain, history match, dan trophy cabinet.
-- Menambahkan klub AI aktif di bursa transfer dan tawaran masuk ke klub pengguna.
-- Menambahkan deadline day, pinjaman, opsi beli, dan laporan FFP.
-- Menambahkan Medical Centre, rehabilitasi, risiko kambuh, dan riwayat cedera.
-- Menambahkan Media & Fans, konferensi pers, social feed, dan sentimen suporter.
-- Menambahkan Stadion & Bisnis, sponsor, harga tiket, naming rights, dan proyek fasilitas.
-- Menambahkan Match Preparation dan analisis lawan.
-- Menambahkan animasi 2D ringan, mode performa, efek gol, shot trail, crowd pulse, dan replay.
-- Menambahkan Career Lab, create-a-club, challenge mode, mod/database pack, achievement, dan retirement legacy.
-- Mengoptimalkan daftar transfer dan direktori klub pada HP.
+- Intro pertandingan sinematik: stadion, tunnel, walkout, starting XI, anthem, kick-off.
+- Broadcast HUD, kamera Broadcast/Follow Ball/Tactical, cuaca visual dan crowd ambience.
+- Animasi pemain untuk lari, tembakan, tackle, diving kiper dan selebrasi gol.
+- Event overlay untuk gol, peluang, kartu, VAR, half-time dan full-time.
+- Confetti adaptif, shot/replay effects, Player of the Match presentation.
+- Ceremony Studio untuk Ballon d'Or dan trofi klub.
+- Mode grafis Auto, Hemat, Normal dan Tinggi dengan deteksi perangkat.
+- Highlight mode Only Goals, Key, Extended dan Full Match.
+- Prompt instalasi PWA khusus HP, page transitions dan UI polish.
+- Semua sistem v11 tetap tersedia: AI klub, transfer, medis, media, stadion, bisnis, akademi, cloud save, modding, dan career lab.

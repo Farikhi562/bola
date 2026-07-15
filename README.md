@@ -1,54 +1,40 @@
-# Farikhi Football Universe v11.0
+# Farikhi Football Universe v12.0
 
-Game manajer sepak bola PWA yang bisa dimainkan lokal, diinstal di HP, atau dideploy ke Vercel.
-
-## Fitur utama v11
-
-- Dunia klub: profil klub, pelatih, pemain, form, riwayat pertandingan, aktivitas transfer, stadion, keuangan, dan trophy cabinet.
-- Klub AI lebih hidup: kebutuhan posisi, strategi rekrutmen, transfer mingguan, tawaran masuk ke klub pengguna, pergantian pelatih, dan deadline day.
-- Transfer lanjutan: filter pemain lengkap, negosiasi, pinjaman, opsi beli, FFP, shortlist, scouting, dan profil klub langsung dari pasar transfer.
-- Medical Centre: diagnosis, risiko cedera, program rehabilitasi, risiko kambuh, dan riwayat medis.
-- Media & Fans: konferensi pers, sentimen suporter, media rating, social feed, dan popularitas pemain.
-- Stadion & bisnis: upgrade fasilitas, harga tiket, sponsor, naming rights, museum, megastore, serta proyek pembangunan.
-- Match preparation: analisis lawan, set-piece plan, marking, team talk, dan readiness.
-- Animasi 2D ringan: 22 pemain, bola, shot trail, goal flash, crowd pulse, kartu, replay highlight, serta mode Hemat/Normal/Sinematik.
-- Career Lab: create-a-club, challenge mode, mode direktur olahraga, pekerjaan timnas, mod/database pack, achievement, dan pemain pensiun menjadi staf.
-- Akademi, ruang ganti, karier manajer, penghargaan, timnas, kompetisi regional, promosi-degradasi, cloud save, dan editor database tetap tersedia.
+FFU v12 adalah game manajer sepak bola PWA offline-first dengan cinematic matchday, animasi 2D adaptif, klub AI hidup, transfer realistis, kompetisi multi-negara, tim nasional, media, medis, akademi, stadion, bisnis, penghargaan, modding, dan cloud save Supabase opsional.
 
 ## Menjalankan di Windows
 
 1. Ekstrak ZIP ke folder baru.
-2. Klik dua kali `OPEN-GAME.bat`.
-3. Browser akan membuka `http://localhost:8080`.
-4. Jangan tutup jendela terminal selama bermain.
+2. Klik `OPEN-GAME.bat`.
+3. Buka `http://localhost:8080` bila browser tidak terbuka otomatis.
+4. Pilih klub lalu buat save baru untuk hasil paling stabil.
 
-Kalau Python tidak terpasang, file batch akan membuka `FFU-Standalone.html`.
+## Mode grafis
 
-## Instal di HP
+- **Auto**: mendeteksi CPU, RAM perangkat dan ukuran layar.
+- **Hemat**: efek minimum, label dikurangi, cocok untuk HP lemah.
+- **Normal**: intro, cuaca, crowd dan event overlay seimbang.
+- **Tinggi**: partikel, crowd, kamera dan efek sinematik penuh.
 
-Cara terbaik adalah deploy ke Vercel, lalu buka URL-nya di Chrome Android atau Safari iPhone. Gunakan tombol **Install PWA** di game atau menu **Add to Home Screen**.
+Pengaturan tersedia pada halaman Pertandingan.
 
-## Deploy Vercel
+## Install di HP
+
+Deploy ke Vercel, buka URL menggunakan Chrome Android atau Safari iPhone, lalu gunakan tombol **Install FFU**. Android juga dapat memilih menu browser → Install app. iPhone: Share → Add to Home Screen.
+
+## Build dan deploy
 
 ```bash
 npm run build
 npx vercel --prod
 ```
 
-Output build berada di folder `dist/`.
+Konfigurasi Supabase opsional menggunakan `.env.local`:
 
-## Save lama
+```env
+FFU_SUPABASE_URL=https://PROJECT_REF.supabase.co
+FFU_SUPABASE_ANON_KEY=ANON_KEY
+FFU_DEFAULT_CLOUD_SLOT=karier-utama
+```
 
-Save v10 dicoba dimigrasikan otomatis. Karena struktur AI klub, medis, media, fasilitas, dan pinjaman berubah, save baru tetap paling aman.
-
-## Catatan data visual
-
-Logo, foto pemain, foto pelatih, dan bendera menggunakan sinkronisasi sumber publik dengan fallback lokal. Ketersediaan gambar bergantung pada koneksi dan data sumber. Pemain atau staf fiksi memakai avatar fallback.
-
-## Konfigurasi Supabase lewat .env
-
-1. Salin `.env.example` menjadi `.env.local`.
-2. Isi `FFU_SUPABASE_URL` dan `FFU_SUPABASE_ANON_KEY` dari Supabase Project Settings > API.
-3. Jalankan `SUPABASE-CLOUD-SAVE.sql` sekali melalui Supabase SQL Editor.
-4. Jalankan `npm run dev` untuk lokal atau deploy ke Vercel.
-5. Kode sinkron pribadi tetap diisi dari menu **Save & Data** dalam game dan tidak dimasukkan ke `.env`, karena semua nilai frontend dapat dilihat pengguna browser.
+Jangan taruh service role key di frontend.
