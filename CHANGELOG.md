@@ -1,11 +1,11 @@
 # Changelog
 
-## 9.0.0
+## 10.0.0
 
-- Menambahkan Transfer Search Advanced dengan filter usia, negara, harga pasar, posisi, skill, kaki dominan, liga, status kontrak, scouting, shortlist, serta sorting.
-- Menambahkan animasi dan tahapan negosiasi transfer.
-- Menambahkan Ballon d’Or serta penghargaan dunia dan liga.
-- Menambahkan riwayat trofi klub dan penghargaan individu pada profil pemain.
-- Menambahkan 10 tim nasional baru sehingga total menjadi 62 timnas.
-- Menambahkan migrasi data v8 ke v9.
-- Memperbaiki responsivitas filter transfer dan modal negosiasi di HP.
+- Menambahkan sistem ruang ganti dinamis, kelompok sosial, hierarki, meeting, percakapan pribadi, janji, dan kapten.
+- Menambahkan Akademi 2.0 dengan youth intake, U-18/U-21, simulasi laga, fasilitas, scouting, promosi, dan perkembangan prospek.
+- Menambahkan karier manajer: lisensi, XP, level, statistik, riwayat klub, kursus, dan tawaran pekerjaan.
+- Menambahkan match intelligence: cuaca, kondisi lapangan, tactical familiarity, analisis asisten, dan substitusi AI.
+- Menambahkan cloud save Supabase opsional dan file setup SQL.
+- Menambahkan migrasi save v9 ke v10.
+- Meningkatkan UI responsif untuk halaman ruang ganti, akademi, karier, dan cloud save.

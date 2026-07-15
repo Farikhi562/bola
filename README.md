@@ -1,23 +1,26 @@
-# Farikhi Football Universe v9.0
+# Farikhi Football Universe v10.0
 
-Game manajer sepak bola PWA yang bisa dimainkan lokal maupun di-deploy ke Vercel.
+Game manajer sepak bola PWA yang bisa dimainkan lokal, dipasang di HP, dan di-deploy ke Vercel.
 
-## Fitur baru v9
+## Fitur baru v10
 
-- Transfer Search Advanced: nama, klub, liga, negara, posisi, umur, harga pasar, atribut/skill minimum, kaki dominan, status kontrak, pemain U-21, pemain yang sudah di-scout, shortlist, dan berbagai pilihan urutan.
-- Ruang negosiasi transfer animatif dengan empat tahap: proposal, respons klub, pembicaraan agen, dan keputusan akhir.
-- Struktur proposal mencakup biaya awal, persentase pembayaran muka, sell-on clause, gaji, durasi kontrak, peran skuad, signing bonus, bonus tampil/gol, dan release clause.
-- Ballon d’Or dan penghargaan pemain: pencetak gol terbaik dunia, playmaker, wonderkid, kiper, bek, pemain terbaik liga, dan top skor tiap liga.
-- Riwayat gelar dan penghargaan permanen di profil pemain, termasuk liga domestik dan kompetisi regional.
-- 10 tim nasional tambahan. Total database timnas v9: 62.
-- Save v8 dimigrasikan otomatis ke struktur v9.
+- **Ruang Ganti Dinamis:** kepribadian, hierarki, kelompok sosial, hubungan dengan manajer, kebahagiaan, masalah, meeting tim, percakapan pribadi, janji menit bermain, dan pemilihan kapten.
+- **Akademi 2.0:** tim U-18/U-21, youth intake, laga akademi mingguan, perkembangan pemain, fasilitas, coaching, jaringan rekrutmen, laporan prospek, promosi, dan pelepasan pemain.
+- **Karier Manajer:** lisensi kepelatihan, XP, level, reputasi, statistik karier, riwayat klub, kursus lisensi, tawaran pekerjaan, dan pindah klub.
+- **Match Engine AI:** cuaca, kondisi lapangan, tactical familiarity, analisis asisten pada menit penting, serta substitusi otomatis berdasarkan stamina, posisi, dan rating.
+- **Cloud Save Opsional:** upload/download save lintas perangkat memakai Supabase. Konfigurasi dilakukan dari halaman Save & Data.
+- Semua fitur v9 tetap ada: 16 liga, piramida divisi, transfer advanced, animasi negosiasi, Ballon d’Or, trofi pemain, 62 timnas, match 2D, scouting, staf, editor, dan PWA.
 
-## Cara main di Windows
+## Menjalankan di Windows
 
 1. Ekstrak ZIP ke folder baru.
-2. Jalankan `OPEN-GAME.bat`.
-3. Buka alamat lokal yang tampil, biasanya `http://localhost:8080`.
-4. Pilih klub dan mulai karier baru. Save lama masih dapat dimigrasikan, tetapi save baru disarankan setelah upgrade besar.
+2. Klik `OPEN-GAME.bat`.
+3. Buka `http://localhost:8080` bila browser tidak terbuka otomatis.
+4. Pilih klub dan mulai save baru. Save v9 dimigrasikan otomatis, tetapi save baru paling aman setelah upgrade besar.
+
+## Install di HP
+
+Deploy ke Vercel, buka URL HTTPS melalui Chrome/Safari, lalu tekan **Install FFU** atau **Add to Home Screen**.
 
 ## Deploy Vercel
 
@@ -26,4 +29,12 @@ npm run build
 npx vercel --prod
 ```
 
-Output build berada di folder `dist`.
+## Cloud save Supabase
+
+1. Buat proyek Supabase.
+2. Jalankan `SUPABASE-CLOUD-SAVE.sql` di SQL Editor.
+3. Buka FFU → Save & Data.
+4. Isi Project URL, anon key, kode sinkron pribadi, dan nama slot.
+5. Tekan Upload Save atau Download Save.
+
+Kode sinkron bertindak sebagai rahasia slot. Mode ini dibuat untuk penggunaan personal, bukan layanan publik multi-user.

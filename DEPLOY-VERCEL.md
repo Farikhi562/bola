@@ -1,20 +1,24 @@
-# Deploy Farikhi Football Universe v9 ke Vercel
+# Deploy Farikhi Football Universe v10 ke Vercel
 
-## Melalui terminal
+## Cara cepat
 
 ```bash
 npm run build
 npx vercel --prod
 ```
 
-Output build berada di folder `dist` dan `vercel.json` sudah menunjuk ke folder tersebut.
+Output statis berada di folder `dist`.
 
-## Melalui GitHub dan dashboard Vercel
+## Lewat GitHub
 
-1. Commit dan push seluruh folder proyek ke GitHub.
-2. Import repository tersebut di Vercel.
-3. Build command: `npm run build`.
-4. Output directory: `dist`.
-5. Deploy.
+```bash
+git add .
+git commit -m "update FFU v10"
+git push origin main
+```
 
-Setelah memakai URL HTTPS Vercel, browser HP dapat menampilkan prompt instalasi PWA. Pada Android gunakan tombol Install FFU atau menu browser. Pada iPhone gunakan Safari → Share → Add to Home Screen.
+Hubungkan repository ke Vercel. Build Command: `npm run build`. Output Directory: `dist`.
+
+## Cloud save
+
+Cloud save tidak membutuhkan environment variable Vercel. Project URL dan anon key Supabase dimasukkan oleh pemain melalui halaman **Save & Data** dan disimpan lokal di perangkat. Jalankan `SUPABASE-CLOUD-SAVE.sql` pada proyek Supabase terlebih dahulu.
