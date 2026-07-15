@@ -44,3 +44,11 @@ Save v10 dicoba dimigrasikan otomatis. Karena struktur AI klub, medis, media, fa
 ## Catatan data visual
 
 Logo, foto pemain, foto pelatih, dan bendera menggunakan sinkronisasi sumber publik dengan fallback lokal. Ketersediaan gambar bergantung pada koneksi dan data sumber. Pemain atau staf fiksi memakai avatar fallback.
+
+## Konfigurasi Supabase lewat .env
+
+1. Salin `.env.example` menjadi `.env.local`.
+2. Isi `FFU_SUPABASE_URL` dan `FFU_SUPABASE_ANON_KEY` dari Supabase Project Settings > API.
+3. Jalankan `SUPABASE-CLOUD-SAVE.sql` sekali melalui Supabase SQL Editor.
+4. Jalankan `npm run dev` untuk lokal atau deploy ke Vercel.
+5. Kode sinkron pribadi tetap diisi dari menu **Save & Data** dalam game dan tidak dimasukkan ke `.env`, karena semua nilai frontend dapat dilihat pengguna browser.

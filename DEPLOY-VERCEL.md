@@ -24,3 +24,17 @@ npx vercel --prod
 ```
 
 Tidak ada environment variable wajib untuk mode lokal. Supabase hanya diperlukan untuk cloud save opsional.
+
+## Environment Variables Supabase
+
+Tambahkan di Vercel Project Settings > Environment Variables:
+
+```env
+FFU_SUPABASE_URL=https://PROJECT_REF.supabase.co
+FFU_SUPABASE_ANON_KEY=PASTE_SUPABASE_ANON_KEY_DI_SINI
+FFU_DEFAULT_CLOUD_SLOT=karier-utama
+```
+
+Untuk lokal, salin `.env.example` menjadi `.env.local`, isi nilainya, lalu jalankan `npm run dev` atau `npm run build`.
+
+`FFU_SUPABASE_ANON_KEY` boleh berada di frontend selama Row Level Security Supabase aktif. Jangan pernah memakai `service_role` key.
