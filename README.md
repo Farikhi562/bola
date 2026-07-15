@@ -1,40 +1,27 @@
-# Farikhi Football Universe v1.0.0
+# Farikhi Football Universe v3.0
 
-Game manajer sepak bola berbasis PWA, dapat dimainkan lokal dan offline setelah cache pertama.
+Game manajer sepak bola PWA/offline buatan Muhamad Fauzan Al Farikhi.
 
-## Menjalankan
+## Mulai cepat
+- Tanpa instalasi: buka `FFU-Standalone.html` di Chrome atau Edge.
+- Mode PWA lokal Windows: jalankan `start-windows.bat`, lalu buka `http://localhost:8080`.
+- Mode development Node: jalankan `npm run dev`.
 
-### Cara paling gampang
-1. Ekstrak ZIP.
-2. Jalankan `start-windows.bat` di Windows atau `./start-linux.sh` di Linux/macOS.
-3. Buka alamat yang ditampilkan, biasanya `http://localhost:8080`.
-
-### Alternatif Python
-```bash
-python -m http.server 8080
-```
-Lalu buka `http://localhost:8080`.
-
-> Jangan membuka `index.html` langsung melalui `file://` bila ingin service worker/PWA bekerja. Browser memang suka aturan kecil yang bikin manusia emosi.
-
-## Fitur versi 1.0
-- PWA mobile-first, tema gelap, offline cache.
-- Musim 2025/2026.
-- Liga 1 aktif dengan 18 klub, jadwal dua putaran, klasemen, simulasi mingguan.
-- Premier League dan La Liga disimulasikan ringan.
-- Database pemain editable, termasuk pemain top terkurasi dan M. Fauzan A.F di Real Madrid.
-- Atribut 1-100, stamina, form, moral, cedera, perkembangan dan penurunan usia.
-- Skuad, detail statistik dan atribut.
-- Taktik 4-3-3 dengan drag-and-drop pergantian pemain.
-- Match centre komentar teks, pause, kecepatan, xG, tembakan, penguasaan, efek suara.
-- Transfer beli/jual, kontrak dan gaji.
-- Scouting untuk membuka overall dan potensi.
-- Staf spesialis lengkap dengan rating bintang dan biaya kontrak.
-- Keuangan klub berdasarkan reputasi, sponsor, suporter dan stadion.
-- Admin CRUD pemain, klub, dan staf.
-- 10 slot save manual, autosave, ekspor/impor JSON.
+## Fitur v3
+- Wajib memilih klub sebelum karier dimulai.
+- Enam liga aktif: Liga 1, Premier League, La Liga, Serie A, Bundesliga, dan Ligue 1.
+- 114 klub liga dengan ekonomi, reputasi, stadion, dan budget berbeda.
+- Database pemain nyata terkurasi musim 2025/26, ditambah pemain akademi/regens yang ditandai sebagai fiksi.
+- 16 tim nasional dengan roster nyata terkurasi dan simulasi pertandingan internasional.
+- Editor penuh untuk menambah, mengedit, dan menghapus pemain, klub, staf, serta timnas fiksi.
+- Klub fiksi otomatis memperoleh skuad dan jadwal liga dibangun ulang.
+- Taktik lanjutan: 6 formasi, mentalitas, tempo, pressing, garis pertahanan, build-up, gaya passing, transisi, fokus serangan, bola mati, dan role pemain.
+- Staf spesialis memiliki penjelasan fungsi, atribut, tugas mingguan, workload, laporan, gaji, dan efek gameplay.
+- Scouting, transfer, kontrak, latihan, keuangan, sponsor, pertandingan teks live, save/load, ekspor/impor JSON, dan PWA offline.
+- Siap deploy ke Vercel melalui `vercel.json` dan build statis ke `dist/`.
 
 ## Catatan database
-Database awal adalah MVP terkurasi dan generatif agar game tetap ringan serta bebas dependency. Bukan salinan penuh database komersial. Semua nama, atribut, klub, foto URL, saldo, staf, dan nilai bisa diubah melalui Admin Database.
+Data pemain merupakan snapshot terkurasi untuk pengalaman game, bukan feed lisensi komersial atau database live. Transfer dan skuad dunia nyata dapat berubah. Semua data dapat diperbarui dari halaman Admin Database.
 
-Logo/foto internet memakai kolom URL yang dapat diisi lewat editor. Placeholder otomatis dipakai bila URL kosong atau gagal dimuat, sehingga game tidak rusak saat offline.
+## Deploy
+Baca `DEPLOY-VERCEL.md`.
