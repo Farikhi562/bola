@@ -1,7 +1,7 @@
 {
-  "name": "Farikhi Football Universe v10.0",
-  "short_name": "FFU v10",
-  "id": "./?v=10.0.0",
+  "name": "Farikhi Football Universe v11.0",
+  "short_name": "FFU v11",
+  "id": "./?v=11.0.0",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -12,7 +12,7 @@
   "orientation": "any",
   "background_color": "#070c13",
   "theme_color": "#35df8d",
-  "description": "Game manajer bola PWA dengan ruang ganti, Akademi 2.0, karier manajer, match AI, dan cloud save opsional.",
+  "description": "Game manajer bola PWA dengan klub AI aktif, profil dunia klub, medis, media, stadion, bisnis, modding, dan replay 2D ringan.",
   "categories": [
     "games",
     "sports"

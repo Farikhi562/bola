@@ -1,24 +1,26 @@
-# Deploy Farikhi Football Universe v10 ke Vercel
+# Deploy Farikhi Football Universe v11 ke Vercel
 
-## Cara cepat
+## Melalui GitHub
+
+1. Ekstrak seluruh isi ZIP ke repository.
+2. Jalankan:
+
+```bash
+git add .
+git commit -m "update FFU v11"
+git push origin main
+```
+
+3. Hubungkan repository ke Vercel.
+4. Build Command: `npm run build`
+5. Output Directory: `dist`
+6. Deploy.
+
+## Melalui Vercel CLI
 
 ```bash
 npm run build
 npx vercel --prod
 ```
 
-Output statis berada di folder `dist`.
-
-## Lewat GitHub
-
-```bash
-git add .
-git commit -m "update FFU v10"
-git push origin main
-```
-
-Hubungkan repository ke Vercel. Build Command: `npm run build`. Output Directory: `dist`.
-
-## Cloud save
-
-Cloud save tidak membutuhkan environment variable Vercel. Project URL dan anon key Supabase dimasukkan oleh pemain melalui halaman **Save & Data** dan disimpan lokal di perangkat. Jalankan `SUPABASE-CLOUD-SAVE.sql` pada proyek Supabase terlebih dahulu.
+Tidak ada environment variable wajib untuk mode lokal. Supabase hanya diperlukan untuk cloud save opsional.
