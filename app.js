@@ -1,479 +1,529 @@
-'use strict';
+(() => {
+  'use strict';
 
-const APP_KEY = 'ffu_main_state_v1';
-const SLOT_PREFIX = 'ffu_save_slot_';
-const VERSION = '1.0.0';
-const storage = (() => {
-  try {
-    const test='__ffu_storage_test__'; storage.setItem(test,'1'); storage.removeItem(test); return localStorage;
-  } catch (e) {
-    const mem = {};
-    return { getItem:k => Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null, setItem:(k,v)=>{mem[k]=String(v);}, removeItem:k=>{delete mem[k];}, clear:()=>{Object.keys(mem).forEach(k=>delete mem[k]);} };
-  }
-})();
-const $ = (sel, root=document) => root.querySelector(sel);
-const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
-const clamp = (n,min,max) => Math.max(min,Math.min(max,n));
-const uid = (prefix='id') => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`;
-const money = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0);
-const num = n => new Intl.NumberFormat('id-ID').format(Math.round(Number(n)||0));
-const shortMoney = n => {
-  n = Number(n)||0; const a=Math.abs(n);
-  if(a>=1e12) return `${(n/1e12).toFixed(2)} T`;
-  if(a>=1e9) return `${(n/1e9).toFixed(2)} M`;
-  if(a>=1e6) return `${(n/1e6).toFixed(1)} Jt`;
-  return num(n);
-};
-const formatDate = iso => new Intl.DateTimeFormat('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).format(new Date(iso));
-const deepClone = obj => JSON.parse(JSON.stringify(obj));
-const initials = name => name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();
-const positionOrder = ['GK','RB','CB','LB','RWB','DM','CM','AM','RW','LW','CF','ST'];
-
-function rng(seed=1234567){
-  let a=seed>>>0;
-  return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
-}
-const random = rng(20252607);
-const pick = arr => arr[Math.floor(random()*arr.length)];
-const rand = (min,max) => Math.floor(random()*(max-min+1))+min;
-
-const INDONESIAN_CLUBS = [
-  ['persib','Persib Bandung','PERSIB',84,235000000000,'Gelora Bandung Lautan Api',38000,15000000],
-  ['dewa','Dewa United','DEWA',76,165000000000,'Banten International Stadium',30000,8500000],
-  ['malut','Malut United','MALUT',72,95000000000,'Gelora Kie Raha',15000,6500000],
-  ['persebaya','Persebaya Surabaya','PERSEBAYA',80,185000000000,'Gelora Bung Tomo',46000,12500000],
-  ['borneo','Borneo FC Samarinda','BORNEO',78,155000000000,'Segiri',16000,8000000],
-  ['psm','PSM Makassar','PSM',78,145000000000,'B.J. Habibie',20000,8500000],
-  ['persija','Persija Jakarta','PERSIJA',82,220000000000,'Jakarta International Stadium',82000,14500000],
-  ['arema','Arema FC','AREMA',77,135000000000,'Kanjuruhan',42000,9500000],
-  ['bali','Bali United','BALI',78,165000000000,'Kapten I Wayan Dipta',23000,9000000],
-  ['persita','Persita Tangerang','PERSITA',69,85000000000,'Indomilk Arena',15000,5200000],
-  ['psbs','PSBS Biak','PSBS',64,55000000000,'Lukas Enembe',40000,3500000],
-  ['persis','Persis Solo','PERSIS',70,90000000000,'Manahan',20000,6000000],
-  ['madura','Madura United','MADURA',68,75000000000,'Gelora Madura Ratu Pamelingan',13000,4400000],
-  ['semen','Semen Padang','SPFC',66,65000000000,'H. Agus Salim',28000,4000000],
-  ['persik','Persik Kediri','PERSIK',69,80000000000,'Brawijaya',20000,4700000],
-  ['psim','PSIM Yogyakarta','PSIM',65,62000000000,'Mandala Krida',35000,5000000],
-  ['bhayangkara','Bhayangkara Presisi Lampung FC','BFC',68,78000000000,'Sumpah Pemuda',25000,3800000],
-  ['persijap','Persijap Jepara','PERSIJAP',63,48000000000,'Gelora Bumi Kartini',20000,3000000]
-];
-const EPL = ['Arsenal','Aston Villa','Bournemouth','Brentford','Brighton','Burnley','Chelsea','Crystal Palace','Everton','Fulham','Leeds United','Liverpool','Manchester City','Manchester United','Newcastle United','Nottingham Forest','Sunderland','Tottenham Hotspur','West Ham United','Wolverhampton'];
-const LALIGA = ['Athletic Club','Atletico Madrid','Barcelona','Celta Vigo','Deportivo Alaves','Elche','Espanyol','Getafe','Girona','Levante','Mallorca','Osasuna','Rayo Vallecano','Real Betis','Real Madrid','Real Oviedo','Real Sociedad','Sevilla','Valencia','Villarreal'];
-const FIRST_NAMES = ['Aditya','Ahmad','Aldi','Andika','Ardi','Bagas','Bayu','Daffa','Dimas','Egy','Fajar','Fauzi','Febri','Gilang','Hanif','Ilham','Irfan','Jefri','Kurniawan','Marsel','Muhammad','Naufal','Rachmat','Rafael','Reza','Rizky','Saddam','Sandi','Septian','Syahrian','Wahyu','Witan','Yandi','Yoga','Yudha'];
-const LAST_NAMES = ['Abimanyu','Alfarizi','Arhan','Arianto','Drajad','Fahmi','Fathur','Firmansyah','Hidayat','Irianto','Kambuaya','Kurnia','Kusuma','Maulana','Pamungkas','Pratama','Ramadhan','Ridho','Rizky','Saputra','Setiawan','Sulaeman','Supriadi','Utama','Yulianto'];
-const NATIONS = ['Indonesia','Brasil','Argentina','Jepang','Korea Selatan','Belanda','Spanyol','Inggris','Portugal','Prancis','Australia'];
-const STAFF_ROLES = ['Asisten Manajer','Pelatih Kiper','Pelatih Bertahan','Pelatih Gelandang','Pelatih Penyerang','Pelatih Teknik','Pelatih Taktik','Pelatih Fisik','Pelatih Bola Mati','Kepala Pengembangan Pemuda','Dokter Klub','Fisioterapis','Sports Scientist','Ahli Gizi','Psikolog Olahraga','Direktur Olahraga','Kepala Scout','Scout Domestik','Scout Internasional','Scout Pemuda','Scout Lawan','Analis Performa','Analis Data','Analis Rekrutmen','Analis Taktik','Direktur Keuangan','Manajer Komersial','Manajer Sponsor','Manajer Marketing','Manajer Merchandise','Manajer Tiket','Manajer Stadion','Manajer Media'];
-const TRAITS = ['Clinical Finisher','Speed Dribbler','Flair','Cuts Inside','First-Time Shot','Big Match Player','Long Shot Taker','Playmaker','Aerial Threat','Ball Winner','Leader','Set Piece Specialist'];
-
-function makeClub(id,name,short,league,rep,balance,stadium,capacity,fans){
-  return {id,name,short,league,reputation:rep,balance,transferBudget:Math.round(balance*.22),wageBudget:Math.round(balance*.014),stadium,capacity,fans,sponsorIncome:Math.round(balance*.12),shirtColor:'#28d17c',logoUrl:'',facilities:{training:clamp(Math.round(rep/10),1,10),youth:clamp(Math.round(rep/11),1,10),medical:clamp(Math.round(rep/12),1,10),scouting:clamp(Math.round(rep/10),1,10)}};
-}
-function calcAttributes(ovr,pos){
-  const bias = key => clamp(ovr+rand(-10,10)+(key==='pace'&&['LW','RW','ST','CF'].includes(pos)?5:0),25,99);
-  const attrs = {pace:bias('pace'),acceleration:bias('pace'),stamina:bias(),strength:bias(),shooting:bias(),finishing:bias(),longShot:bias(),passing:bias(),crossing:bias(),vision:bias(),dribbling:bias(),control:bias(),technique:bias(),tackling:bias(),marking:bias(),positioning:bias(),heading:bias(),composure:bias(),leadership:bias(),teamwork:bias(),reflexes:bias(),handling:bias()};
-  if(pos==='GK'){ attrs.reflexes=clamp(ovr+rand(-3,7),30,99); attrs.handling=clamp(ovr+rand(-5,6),30,99); attrs.shooting=rand(20,45); attrs.dribbling=rand(25,50); }
-  if(['CB','RB','LB','RWB','DM'].includes(pos)){ attrs.tackling=clamp(ovr+rand(-2,8),30,99); attrs.marking=clamp(ovr+rand(-3,8),30,99); }
-  if(['ST','CF','LW','RW'].includes(pos)){ attrs.finishing=clamp(ovr+rand(-2,8),30,99); attrs.dribbling=clamp(ovr+rand(-3,7),30,99); }
-  return attrs;
-}
-function playerValue(ovr,age,potential){
-  const ageFactor = age<=23?1.35:age<=28?1:age<=32?.7:.4;
-  const potFactor = 1+Math.max(0,potential-ovr)/80;
-  return Math.round(Math.pow(ovr,3)*9000*ageFactor*potFactor/1000000)*1000000;
-}
-function makePlayer(name,clubId,nation,pos,age,ovr,potential,extra={}){
-  const value=playerValue(ovr,age,potential);
-  return {id:uid('p'),name,displayName:extra.displayName||name,clubId,nation,pos,secondary:extra.secondary||[],age,number:extra.number||rand(1,99),foot:extra.foot||pick(['Kanan','Kanan','Kanan','Kiri']),height:extra.height||rand(165,190),weight:extra.weight||rand(58,88),ovr,potential,scouted:extra.scouted??(clubId==='persija'),stamina:rand(78,100),fitness:100,morale:rand(65,95),form:rand(62,88),value,wage:Math.max(5000000,Math.round(value*.0015/100000)*100000),contractUntil:extra.contractUntil||'2028-06-30',traits:extra.traits||[pick(TRAITS)],injury:null,attributes:calcAttributes(ovr,pos),stats:{apps:0,goals:0,assists:0,yellow:0,red:0,rating:0},imageUrl:extra.imageUrl||''};
-}
-function generateClubPlayers(club,seedIndex){
-  const formation = ['GK','GK','RB','RB','CB','CB','CB','CB','LB','LB','DM','DM','CM','CM','CM','AM','RW','RW','LW','LW','CF','ST','ST','ST'];
-  return formation.map((pos,i)=>{
-    const local = random()<.76;
-    const name = local?`${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`:`${pick(['Lucas','Matheus','Bruno','Diego','Renan','Jorge','Carlos','Gustavo','Felipe','Alejandro','Kei','Riku'])} ${pick(['Silva','Santos','Costa','Pereira','Garcia','Lopez','Tanaka','Sato','Martinez'])}`;
-    const base = clamp(Math.round(club.reputation*.73)+rand(-8,8),48,79);
-    const age = rand(17,34); const potential=clamp(base+rand(0,age<22?20:7),base,91);
-    return makePlayer(name,club.id,local?'Indonesia':pick(NATIONS.slice(1)),pos,age,base,potential,{number:i+1,scouted:true});
-  });
-}
-function makeStaff(clubId,role,quality){
-  const rating=clamp(quality+rand(-10,10),25,99); const stars=Math.round((rating/20)*2)/2;
-  const salary=Math.round((10000000+Math.pow(stars,2)*18000000)/1000000)*1000000;
-  return {id:uid('s'),name:`${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`,clubId,role,rating,stars:clamp(stars,.5,5),salary,contractUntil:'2027-06-30',attributes:{coaching:clamp(rating+rand(-12,12),20,99),tactical:clamp(rating+rand(-12,12),20,99),development:clamp(rating+rand(-12,12),20,99),scouting:clamp(rating+rand(-12,12),20,99),analysis:clamp(rating+rand(-12,12),20,99),medical:clamp(rating+rand(-12,12),20,99),commercial:clamp(rating+rand(-12,12),20,99),negotiation:clamp(rating+rand(-12,12),20,99)}};
-}
-function createTable(clubs){
-  return clubs.map(c=>({clubId:c.id,p:0,w:0,d:0,l:0,gf:0,ga:0,gd:0,pts:0}));
-}
-function roundRobin(ids){
-  const teams=[...ids]; if(teams.length%2) teams.push(null); const rounds=[]; const n=teams.length;
-  for(let r=0;r<n-1;r++){
-    const games=[];
-    for(let i=0;i<n/2;i++){ const a=teams[i],b=teams[n-1-i]; if(a&&b) games.push({id:uid('fx'),week:r+1,homeId:r%2?a:b,awayId:r%2?b:a,played:false,homeGoals:null,awayGoals:null}); }
-    rounds.push(...games); teams.splice(1,0,teams.pop());
-  }
-  const returnGames=rounds.map(g=>({...g,id:uid('fx'),week:g.week+n-1,homeId:g.awayId,awayId:g.homeId}));
-  return [...rounds,...returnGames];
-}
-function foreignClub(name,league,index){
-  const id=`${league}_${name.toLowerCase().replace(/[^a-z0-9]+/g,'_')}`; const rep=rand(65,92)+(name.includes('Real Madrid')||name.includes('Barcelona')||name.includes('Manchester City')||name.includes('Liverpool')?5:0);
-  return makeClub(id,name,name.split(' ').map(x=>x[0]).join('').slice(0,4),league,clamp(rep,60,99),rand(900,4500)*1000000000,`${name} Stadium`,rand(25000,80000),rand(5,35)*1000000);
-}
-function seedTopPlayers(clubs){
-  const find=n=>clubs.find(c=>c.name===n)?.id;
-  const data=[
-    ['M. Fauzan A.F',find('Real Madrid'),'Indonesia','CF',16,70,99,{displayName:'M. Fauzan A.F',number:7,foot:'Kanan',height:165,weight:59,secondary:['LW','RW'],traits:['Clinical Finisher','Speed Dribbler','Flair','Cuts Inside','First-Time Shot','Big Match Player']}],
-    ['Kylian Mbappe',find('Real Madrid'),'Prancis','ST',26,94,96,{number:9,secondary:['LW','CF'],traits:['Clinical Finisher','Speed Dribbler']}],
-    ['Vinicius Junior',find('Real Madrid'),'Brasil','LW',25,91,94,{number:7,secondary:['RW','ST'],foot:'Kanan',traits:['Flair','Speed Dribbler']}],
-    ['Jude Bellingham',find('Real Madrid'),'Inggris','AM',22,91,95,{number:5,secondary:['CM'],traits:['Big Match Player','Playmaker']}],
-    ['Thibaut Courtois',find('Real Madrid'),'Belgia','GK',33,90,90,{number:1,height:200}],
-    ['Lamine Yamal',find('Barcelona'),'Spanyol','RW',18,89,98,{number:10,foot:'Kiri',secondary:['LW','AM'],traits:['Flair','Speed Dribbler']}],
-    ['Pedri',find('Barcelona'),'Spanyol','CM',22,88,94,{number:8,secondary:['AM'],traits:['Playmaker']}],
-    ['Raphinha',find('Barcelona'),'Brasil','LW',28,89,89,{number:11,secondary:['RW']}],
-    ['Erling Haaland',find('Manchester City'),'Norwegia','ST',25,92,95,{number:9,height:195,traits:['Clinical Finisher','Aerial Threat']}],
-    ['Rodri',find('Manchester City'),'Spanyol','DM',29,91,91,{number:16,secondary:['CM'],traits:['Playmaker','Ball Winner']}],
-    ['Phil Foden',find('Manchester City'),'Inggris','AM',25,89,92,{number:47,secondary:['RW','LW']}],
-    ['Mohamed Salah',find('Liverpool'),'Mesir','RW',33,90,90,{number:11,foot:'Kiri',secondary:['ST'],traits:['Clinical Finisher','Cuts Inside']}],
-    ['Virgil van Dijk',find('Liverpool'),'Belanda','CB',34,89,89,{number:4,height:193,traits:['Leader','Aerial Threat']}],
-    ['Bukayo Saka',find('Arsenal'),'Inggris','RW',23,89,93,{number:7,foot:'Kiri',secondary:['LW']}],
-    ['Cole Palmer',find('Chelsea'),'Inggris','AM',23,88,94,{number:10,secondary:['RW'],foot:'Kiri'}],
-    ['Bruno Fernandes',find('Manchester United'),'Portugal','AM',30,88,88,{number:8,secondary:['CM'],traits:['Playmaker','Leader']}],
-    ['Alexander Isak',find('Newcastle United'),'Swedia','ST',25,88,91,{number:14,secondary:['CF']}],
-    ['Julian Alvarez',find('Atletico Madrid'),'Argentina','ST',25,88,91,{number:19,secondary:['CF','AM']}],
-    ['Nico Williams',find('Athletic Club'),'Spanyol','LW',23,86,91,{number:10,secondary:['RW']}]
+  const VERSION = '3.0.0';
+  const STORAGE_PREFIX = 'ffu-save-';
+  const ACTIVE_SLOT_KEY = 'ffu-active-slot';
+  const PHOTO_CACHE_KEY = 'ffu-photo-cache-v1';
+  const SAVE_SLOTS = 5;
+  const navItems = [
+    ['dashboard','⌂','Beranda'],['squad','♟','Skuad'],['tactics','▦','Taktik'],['match','▶','Pertandingan'],
+    ['transfers','⇄','Transfer'],['scouting','⌕','Scouting'],['competition','🏆','Kompetisi'],['finance','Rp','Keuangan'],
+    ['admin','⚙','Admin'],['settings','☷','Pengaturan']
   ];
-  return data.map(x=>makePlayer(...x));
-}
-function buildInitialState(){
-  const clubs=INDONESIAN_CLUBS.map(x=>makeClub(x[0],x[1],x[2],'Liga 1',x[3],x[4],x[5],x[6],x[7]));
-  EPL.forEach((n,i)=>clubs.push(foreignClub(n,'Premier League',i)));
-  LALIGA.forEach((n,i)=>clubs.push(foreignClub(n,'La Liga',i)));
-  let players=[]; clubs.filter(c=>c.league==='Liga 1').forEach((c,i)=>players.push(...generateClubPlayers(c,i)));
-  players.push(...seedTopPlayers(clubs));
-  // Add editable generated foreign squad players so transfer market is alive.
-  clubs.filter(c=>c.league!=='Liga 1').forEach(c=>{
-    const positions=['GK','CB','RB','LB','DM','CM','AM','RW','LW','ST'];
-    positions.forEach((pos,i)=>{
-      if(!players.some(p=>p.clubId===c.id&&p.pos===pos)) players.push(makePlayer(`${pick(['Alex','Daniel','Marco','Luis','Samuel','Theo','Gabriel','Victor','Leo','Rayan'])} ${pick(['Martin','Silva','Garcia','Brown','Mendes','Costa','Wilson','Ruiz'])}`,c.id,pick(NATIONS.slice(1)),pos,rand(18,32),clamp(Math.round(c.reputation*.88)+rand(-6,5),60,89),clamp(Math.round(c.reputation*.9)+rand(0,8),65,94),{scouted:false}));
+  const bottomItems = ['dashboard','squad','match','transfers','admin'];
+  const $ = (q, root=document) => root.querySelector(q);
+  const $$ = (q, root=document) => [...root.querySelectorAll(q)];
+  const clone = obj => typeof structuredClone === 'function' ? structuredClone(obj) : JSON.parse(JSON.stringify(obj));
+  const fmtMoney = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0,notation:Math.abs(n)>=1_000_000_000?'compact':'standard'}).format(n || 0);
+  const fmtFullMoney = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n || 0);
+  const escapeHtml = s => String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
+  const hash = s => { let h=2166136261; for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)} return h>>>0 };
+  const randFrom = (seed,min,max) => min + (hash(seed) % (max-min+1));
+  const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+  const ui = {
+    activeView:'dashboard', squadPage:1, squadQuery:'', squadPos:'ALL', transferPage:1, transferQuery:'',
+    transferPos:'ALL', scoutPage:1, scoutQuery:'', adminPage:1, adminQuery:'', adminTab:'players',
+    selectedTacticPlayer:null, currentMatch:null, cleanup:null, saving:false
+  };
+
+  function createInitialState(){
+    const data = clone(window.FFU_DATA);
+    const fundsByClub = Object.fromEntries(data.clubs.map(c=>[c.id,c.budget]));
+    const persija = data.clubs.find(c=>c.name==='Persija Jakarta') || data.clubs[0];
+    const state = {
+      version:VERSION, hasOnboarded:false, managerName:'Muhamad Fauzan Al Farikhi', selectedClubId:persija.id,
+      week:1, date:'2025-08-04', sound:true, reducedMotion:false, activeSlot:1, fundsByClub,
+      clubs:data.clubs, players:data.players, standings:data.standings, shortlist:[], lineups:{},
+      transactions:[
+        {id:cryptoId(),date:'2025-08-04',type:'Sponsor utama',amount:12_500_000_000},
+        {id:cryptoId(),date:'2025-08-04',type:'Gaji staf dan pemain',amount:-4_850_000_000}
+      ],
+      news:[
+        {title:'Musim 2025/26 resmi dimulai',meta:'Pusat berita • Hari ini'},
+        {title:'Pemandu bakat mulai memantau wonderkid muda',meta:'Scouting • 1 jam lalu'},
+        {title:'Bursa transfer dibuka sampai pekan keempat',meta:'Transfer • 2 jam lalu'}
+      ],
+      settings:{autosave:true,matchFps:30,matchView:'3d',matchQuality:'low',matchCamera:'broadcast'}, matchHistory:[]
+    };
+    ensureLineup(state, persija.id);
+    return state;
+  }
+
+  function cryptoId(){ return (crypto?.randomUUID?.() || Math.random().toString(36).slice(2)+Date.now().toString(36)); }
+
+  let activeSlot = Number(localStorage.getItem(ACTIVE_SLOT_KEY) || 1);
+  let state = loadSlot(activeSlot) || createInitialState();
+  migrateState();
+
+  function migrateState(){
+    if(!state.fundsByClub) state.fundsByClub = Object.fromEntries(state.clubs.map(c=>[c.id,c.budget||0]));
+    if(!state.settings) state.settings={autosave:true,matchFps:30,matchView:'3d',matchQuality:'low',matchCamera:'broadcast'};
+    state.settings.matchView=state.settings.matchView||'3d';
+    state.settings.matchQuality=state.settings.matchQuality||'low';
+    state.settings.matchCamera=state.settings.matchCamera||'broadcast';
+    if(!state.lineups) state.lineups={};
+    if(!state.news) state.news=[];
+    if(!state.transactions) state.transactions=[];
+    if(!state.shortlist) state.shortlist=[];
+    if(!state.matchHistory) state.matchHistory=[];
+    state.version=VERSION;
+    activeSlot=state.activeSlot||activeSlot;
+    ensureLineup(state,state.selectedClubId);
+  }
+
+  function loadSlot(slot){
+    try{ const raw=localStorage.getItem(STORAGE_PREFIX+slot); return raw?JSON.parse(raw):null; }
+    catch(err){ console.warn('Save rusak',err); return null; }
+  }
+  function saveNow(show=false){
+    try{
+      state.activeSlot=activeSlot;
+      localStorage.setItem(STORAGE_PREFIX+activeSlot,JSON.stringify(state));
+      localStorage.setItem(ACTIVE_SLOT_KEY,String(activeSlot));
+      $('#saveStatus').textContent=`Tersimpan slot ${activeSlot} • ${new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}`;
+      if(show) toast(`Save slot ${activeSlot} aman. Tidak hilang ditelan dimensi lain.`);
+    }catch(err){ toast('Save gagal. Penyimpanan browser penuh.',true); console.error(err); }
+  }
+  let saveTimer;
+  function scheduleSave(){
+    if(!state.settings.autosave) return;
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(()=>{
+      const run=()=>saveNow(false);
+      if('requestIdleCallback' in window) requestIdleCallback(run,{timeout:1200}); else run();
+    },650);
+  }
+
+  function clubById(id){ return state.clubs.find(c=>c.id===id); }
+  function playerById(id){ return state.players.find(p=>p.id===id); }
+  function currentClub(){ return clubById(state.selectedClubId) || state.clubs[0]; }
+  function currentPlayers(){ return state.players.filter(p=>p.clubId===state.selectedClubId); }
+  function clubPlayers(clubId){ return state.players.filter(p=>p.clubId===clubId); }
+  function clubFunds(id=state.selectedClubId){ return state.fundsByClub[id] ?? clubById(id)?.budget ?? 0; }
+  function updateFunds(amount,id=state.selectedClubId){ state.fundsByClub[id]=(state.fundsByClub[id]||0)+amount; updateShell(); scheduleSave(); }
+  function initials(name){ return name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase(); }
+  function potentialLabel(p){
+    if(p>=94) return 'Potensi sangat tinggi • calon superstar';
+    if(p>=88) return 'Berpotensi menjadi pemain bintang';
+    if(p>=81) return 'Potensi tinggi';
+    if(p>=73) return 'Potensi biasa';
+    if(p>=65) return 'Potensi rendah';
+    return 'Tidak punya potensi';
+  }
+  function visiblePotential(p){ return p.scouted ? `${p.potential} • ${potentialLabel(p.potential)}` : 'Belum di-scout'; }
+  function ageCurve(p){
+    if(p.age<=20) return 'Perkembangan cepat'; if(p.age<=24) return 'Berkembang'; if(p.age<=27) return 'Masa puncak';
+    if(p.age<=30) return 'Stabil'; if(p.age<=33) return 'Mulai menurun'; return 'Penurunan tajam';
+  }
+  function clubStrength(id){
+    const ps=clubPlayers(id).sort((a,b)=>b.overall-a.overall).slice(0,11);
+    return ps.length?Math.round(ps.reduce((s,p)=>s+p.overall,0)/ps.length):(clubById(id)?.strength||70);
+  }
+  function nextOpponent(){
+    const c=currentClub();
+    const pool=state.clubs.filter(x=>x.league===c.league && x.id!==c.id);
+    return pool[(state.week*3 + hash(c.id)) % Math.max(1,pool.length)] || state.clubs.find(x=>x.id!==c.id);
+  }
+  function formattedDate(){ return new Date(state.date+'T12:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+
+  function ensureLineup(targetState,clubId){
+    if(targetState.lineups[clubId]?.length===11) return;
+    const players=targetState.players.filter(p=>p.clubId===clubId).sort((a,b)=>b.overall-a.overall).slice(0,11);
+    targetState.lineups[clubId]=players.map(p=>p.id);
+  }
+
+  function updateShell(){
+    const c=currentClub();
+    $('#clubName').textContent=c.name;
+    $('#clubBadge').textContent=c.code;
+    $('#clubBadge').style.background=`linear-gradient(135deg,${c.colors?.[0]||'#16a34a'},${c.colors?.[1]||'#07120d'})`;
+    $('#managerMeta').textContent=`${state.managerName} • Pekan ${state.week}`;
+    $('#moneyPill').textContent=fmtMoney(clubFunds());
+    $('#soundBtn').textContent=state.sound?'🔊':'🔇';
+    $$('.nav-btn,.bottom-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===ui.activeView));
+  }
+
+  function renderNav(){
+    $('#mainNav').innerHTML=navItems.map(([id,ic,label])=>`<button class="nav-btn ${ui.activeView===id?'active':''}" data-view="${id}"><span>${ic}</span>${label}</button>`).join('');
+    $('#bottomNav').innerHTML=bottomItems.map(id=>{const item=navItems.find(x=>x[0]===id);return `<button class="bottom-btn ${ui.activeView===id?'active':''}" data-view="${id}"><b>${item[1]}</b><span>${item[2]}</span></button>`}).join('');
+  }
+
+  function navigate(view){
+    if(ui.cleanup){ try{ui.cleanup()}catch{} ui.cleanup=null; }
+    ui.activeView=view;
+    renderNav(); updateShell(); renderView();
+    $('#sidebar').classList.remove('open');
+    window.scrollTo({top:0,behavior:state.reducedMotion?'auto':'smooth'});
+  }
+
+  function renderView(){
+    const view=$('#view');
+    const renderers={dashboard:renderDashboard,squad:renderSquad,tactics:renderTactics,match:renderMatch,transfers:renderTransfers,scouting:renderScouting,competition:renderCompetition,finance:renderFinance,admin:renderAdmin,settings:renderSettings};
+    view.innerHTML='';
+    (renderers[ui.activeView]||renderDashboard)(view);
+  }
+
+  function pageHead(title,sub,actions=''){ return `<div class="page-head"><div><h1>${title}</h1><p>${sub}</p></div><div>${actions}</div></div>`; }
+  function badge(c,size='mini-badge'){ return `<div class="${size}" style="background:linear-gradient(135deg,${c.colors?.[0]||'#183424'},${c.colors?.[1]||'#07120d'})">${escapeHtml(c.code)}</div>`; }
+  function playerAvatar(p){ return `<div class="avatar">${escapeHtml(initials(p.name))}</div>`; }
+
+  function renderDashboard(view){
+    const c=currentClub(), opp=nextOpponent(), squad=currentPlayers();
+    const avg=squad.length?Math.round(squad.reduce((s,p)=>s+p.overall,0)/squad.length):0;
+    const injured=squad.filter(p=>p.fitness<68).length;
+    const leagueTable=state.standings[c.league]||[];
+    const rank=Math.max(1,leagueTable.findIndex(x=>x.clubId===c.id)+1 || 1);
+    view.innerHTML=pageHead(`Pekan ${state.week}`,formattedDate(),`<button class="ghost-btn" data-view="settings">Kelola Save</button>`)+`
+      <div class="grid kpi">
+        ${kpi('Posisi Liga',`#${rank}`,c.league)}
+        ${kpi('Kekuatan Skuad',avg,'Rata-rata overall')}
+        ${kpi('Saldo Klub',fmtMoney(clubFunds()),'Semua transaksi memakai IDR')}
+        ${kpi('Kondisi',`${injured} rawan cedera`,injured?'Rotasi disarankan':'Skuad cukup bugar')}
+      </div>
+      <div class="grid two" style="margin-top:15px">
+        <div class="card">
+          <h2>Pertandingan Berikutnya</h2><p class="card-sub">${escapeHtml(c.league)} • Pekan ${state.week}</p>
+          <div class="fixture-card" style="margin-top:15px">
+            <div class="fixture-team">${badge(c)}<strong>${escapeHtml(c.name)}</strong></div>
+            <div class="fixture-vs">VS<br><small>Sabtu 19.30</small></div>
+            <div class="fixture-team">${badge(opp)}<strong>${escapeHtml(opp.name)}</strong></div>
+          </div>
+          <div class="toolbar" style="margin-top:14px"><button class="primary-btn" data-view="match">Masuk Match Centre</button><button class="ghost-btn" data-view="tactics">Atur Taktik</button></div>
+        </div>
+        <div class="card"><h2>Agenda Pekan Ini</h2><div class="activity-list">
+          ${activity('Senin','Pemulihan dan evaluasi video')}${activity('Rabu','Latihan taktik utama')}${activity('Jumat','Konferensi pers dan finalisasi skuad')}${activity('Sabtu','Pertandingan liga')}
+        </div></div>
+      </div>
+      <div class="grid two" style="margin-top:15px">
+        <div class="card"><h2>Berita Klub & Dunia</h2><div class="news-list">${state.news.slice(0,6).map(n=>`<div class="news-item"><strong>${escapeHtml(n.title)}</strong><span>${escapeHtml(n.meta)}</span></div>`).join('')}</div></div>
+        <div class="card"><h2>Pemain Kunci</h2><div class="activity-list">${squad.sort((a,b)=>b.form-a.form).slice(0,5).map(p=>`<div class="activity-item click-row" data-player-id="${p.id}"><strong>${escapeHtml(p.name)} <span class="pos">${p.position}</span></strong><span>OVR ${p.overall} • Form ${p.form} • Fitness ${p.fitness}</span></div>`).join('')||'<div class="empty">Skuad kosong. Admin lu kebangetan.</div>'}</div></div>
+      </div>`;
+  }
+  function kpi(label,value,delta){return `<div class="card kpi-card"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div><div class="kpi-delta">${delta}</div></div>`}
+  function activity(a,b){return `<div class="activity-item"><strong>${a}</strong><span>${b}</span></div>`}
+
+  function renderSquad(view){
+    const all=currentPlayers().filter(p=>(ui.squadPos==='ALL'||p.position===ui.squadPos)&&p.name.toLowerCase().includes(ui.squadQuery.toLowerCase())).sort((a,b)=>b.overall-a.overall);
+    const pageSize=25,pages=Math.max(1,Math.ceil(all.length/pageSize)); ui.squadPage=Math.min(ui.squadPage,pages);
+    const rows=all.slice((ui.squadPage-1)*pageSize,ui.squadPage*pageSize);
+    const positions=['ALL',...new Set(currentPlayers().map(p=>p.position))];
+    view.innerHTML=pageHead('Skuad Utama',`${currentPlayers().length} pemain • tabel dipaginasi biar HP lu nggak minta ampun`)+`
+      <div class="card"><div class="toolbar"><input class="input" id="squadSearch" value="${escapeHtml(ui.squadQuery)}" placeholder="Cari pemain..."><select class="select" id="squadPos">${positions.map(x=>`<option ${x===ui.squadPos?'selected':''}>${x}</option>`).join('')}</select><button class="ghost-btn" data-view="tactics">Susun XI</button></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Pemain</th><th>Pos</th><th>Usia</th><th>OVR</th><th>Potensi</th><th>Fitness</th><th>Form</th><th>Gaji</th></tr></thead><tbody>
+      ${rows.map(p=>`<tr class="click-row" data-player-id="${p.id}"><td><div class="player-cell">${playerAvatar(p)}<div><strong>${escapeHtml(p.name)}</strong><div class="muted">${escapeHtml(p.nationality)} • #${p.number}</div></div></div></td><td><span class="pos">${p.position}</span></td><td>${p.age}</td><td class="rating">${p.overall}</td><td>${p.scouted?`<span class="tag">${p.potential}</span>`:'<span class="tag warn">?</span>'}</td><td>${bar(p.fitness)}</td><td>${p.form}</td><td>${fmtMoney(p.wage)}/bln</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Pemain nggak ketemu.</td></tr>'}
+      </tbody></table></div>${pagination('squad',ui.squadPage,pages)}</div>`;
+    $('#squadSearch').addEventListener('input',debounce(e=>{ui.squadQuery=e.target.value;ui.squadPage=1;renderView()},180));
+    $('#squadPos').addEventListener('change',e=>{ui.squadPos=e.target.value;ui.squadPage=1;renderView()});
+  }
+  function bar(v){ return `<div class="progress" title="${v}"><i style="width:${Math.max(0,Math.min(100,v))}%"></i></div>`; }
+  function pagination(type,page,pages){ return `<div class="pagination"><button class="ghost-btn" data-page-type="${type}" data-page="${page-1}" ${page<=1?'disabled':''}>‹</button><span>${page} / ${pages}</span><button class="ghost-btn" data-page-type="${type}" data-page="${page+1}" ${page>=pages?'disabled':''}>›</button></div>`; }
+  function debounce(fn,ms){let t;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+
+  function showPlayer(p){
+    const attrs=p.attributes;
+    const body=`<div class="player-hero"><img id="playerPhoto" class="player-photo" src="${avatarFallback(p.name)}" alt="Foto ${escapeHtml(p.name)}"><div class="player-meta"><h2>${escapeHtml(p.name)}</h2><p>${escapeHtml(p.club)} • ${p.position}${p.secondaryPositions?.length?' / '+p.secondaryPositions.join(', '):''}</p><p>${escapeHtml(p.nationality)} • ${p.age} tahun • ${p.height} cm / ${p.weight} kg • Kaki ${p.foot==='Right'?'kanan':'kiri'}</p><div class="toolbar"><span class="tag">OVR ${p.overall}</span><span class="tag ${p.scouted?'':'warn'}">POT ${p.scouted?p.potential:'?'}</span><span class="tag">${ageCurve(p)}</span></div></div></div>
+      <div class="divider"></div><div class="grid two"><div><h3>Atribut Utama</h3><div class="stat-grid">${Object.entries(attrs).map(([k,v])=>`<div class="stat-box"><span>${attrName(k)}</span><strong>${v}</strong>${bar(v)}</div>`).join('')}</div></div><div><h3>Laporan</h3><div class="finance-list"><div class="finance-row"><span>Potensi</span><strong>${visiblePotential(p)}</strong></div><div class="finance-row"><span>Nilai pasar</span><strong>${fmtFullMoney(p.value)}</strong></div><div class="finance-row"><span>Gaji</span><strong>${fmtFullMoney(p.wage)}/bulan</strong></div><div class="finance-row"><span>Kontrak</span><strong>${p.contractYears} tahun</strong></div><div class="finance-row"><span>Statistik</span><strong>${p.stats.apps} laga • ${p.stats.goals} gol</strong></div></div><div class="toolbar" style="margin-top:14px">${p.clubId!==state.selectedClubId?`<button class="primary-btn" data-negotiate="${p.id}">Negosiasi</button>`:''}${!p.scouted?`<button class="ghost-btn" data-scout="${p.id}">Scout Pemain</button>`:''}<button class="ghost-btn" data-admin-edit="${p.id}">Edit Admin</button></div></div></div>`;
+    openModal(body);
+    resolvePlayerPhoto(p).then(url=>{const img=$('#playerPhoto'); if(img&&url) img.src=url;});
+  }
+  function attrName(k){return ({pace:'Pace',shooting:'Shoot',passing:'Passing',dribbling:'Dribble',defending:'Defending',physical:'Physical',stamina:'Stamina',goalkeeping:'Goalkeeping',finishing:'Finishing',vision:'Vision',tackling:'Tackling',composure:'Composure'})[k]||k}
+
+  const FORMATIONS={
+    '4-2-3-1':[[50,91],[18,76],[39,80],[61,80],[82,76],[38,62],[62,62],[20,43],[50,45],[80,43],[50,23]],
+    '4-3-3':[[50,91],[18,76],[39,80],[61,80],[82,76],[25,58],[50,62],[75,58],[18,31],[50,24],[82,31]],
+    '3-4-3':[[50,91],[27,77],[50,79],[73,77],[13,56],[38,60],[62,60],[87,56],[20,31],[50,24],[80,31]],
+    '4-4-2':[[50,91],[18,76],[39,80],[61,80],[82,76],[18,52],[40,58],[60,58],[82,52],[38,27],[62,27]]
+  };
+  function renderTactics(view){
+    ensureLineup(state,state.selectedClubId);
+    const lineup=state.lineups[state.selectedClubId], squad=currentPlayers().sort((a,b)=>b.overall-a.overall);
+    const formation=state.formation||'4-2-3-1', coords=FORMATIONS[formation];
+    const bench=squad.filter(p=>!lineup.includes(p.id));
+    view.innerHTML=pageHead('Papan Taktik','Drag & drop di desktop, tap pemain lalu tap slot di HP. Manusia ternyata butuh dua metode buat mindahin satu lingkaran.',`<select class="select" id="formationSelect">${Object.keys(FORMATIONS).map(x=>`<option ${x===formation?'selected':''}>${x}</option>`).join('')}</select>`)+`
+      <div class="pitch-layout"><div class="pitch" id="tacticPitch">${lineup.map((id,i)=>{const p=playerById(id);return `<div class="slot" data-slot="${i}" style="left:${coords[i][0]}%;top:${coords[i][1]}%"><div class="slot-player" draggable="true" data-drag-player="${id}">${p?initials(p.name):'+'}</div><span>${p?escapeHtml(p.name):'Kosong'}<br>${p?`${p.position} • ${p.overall}`:''}</span></div>`}).join('')}</div>
+      <div class="card"><h3>Cadangan</h3><p class="card-sub">Klik pemain untuk dipilih.</p><div class="bench-list">${bench.map(p=>`<div class="bench-player" draggable="true" data-drag-player="${p.id}" data-select-tactic="${p.id}">${playerAvatar(p)}<div><strong>${escapeHtml(p.name)}</strong><div class="muted">${p.position} • OVR ${p.overall}</div></div></div>`).join('')||'<div class="empty">Tidak ada cadangan.</div>'}</div></div></div>`;
+    $('#formationSelect').addEventListener('change',e=>{state.formation=e.target.value;scheduleSave();renderView()});
+    let dragged=null;
+    $$('[data-drag-player]').forEach(el=>el.addEventListener('dragstart',()=>dragged=el.dataset.dragPlayer));
+    $$('.slot').forEach(slot=>{
+      slot.addEventListener('dragover',e=>e.preventDefault());
+      slot.addEventListener('drop',e=>{e.preventDefault();if(dragged)assignToSlot(dragged,Number(slot.dataset.slot))});
+      slot.addEventListener('click',()=>{if(ui.selectedTacticPlayer)assignToSlot(ui.selectedTacticPlayer,Number(slot.dataset.slot))});
     });
+    $$('[data-select-tactic]').forEach(el=>el.addEventListener('click',()=>{ui.selectedTacticPlayer=el.dataset.selectTactic;toast(`${playerById(ui.selectedTacticPlayer)?.name} dipilih. Tap posisi tujuan.`)}));
+  }
+  function assignToSlot(playerId,slot){
+    const arr=state.lineups[state.selectedClubId]; const oldIndex=arr.indexOf(playerId); const replaced=arr[slot];
+    if(oldIndex>=0) arr[oldIndex]=replaced; arr[slot]=playerId; ui.selectedTacticPlayer=null; scheduleSave();renderView();
+  }
+
+  function renderMatch(view){
+    const home=currentClub(), away=nextOpponent();
+    const mode=state.settings.matchView||'3d';
+    const quality=state.settings.matchQuality||'low';
+    const camera=state.settings.matchCamera||'broadcast';
+    const webglReady=Boolean(window.FFU3D?.isSupported?.());
+    const actualMode=mode==='3d'&&webglReady?'3d':'2d';
+    view.innerHTML=pageHead('Match Centre',actualMode==='3d'?'Mode 3D low-poly WebGL aktif. Kamera, kualitas, dan FPS bisa diturunin kalau chipset mulai halu.':'Mode 2D ringan aktif sebagai fallback untuk perangkat yang WebGL-nya sudah menyerah.')+`
+      <div class="match-wrap"><div class="match-stage"><div class="scoreboard"><div>${badge(home)}<strong>${escapeHtml(home.name)}</strong></div><div class="score-main"><b id="homeScore">0</b> - <b id="awayScore">0</b><span id="matchMinute">Belum dimulai</span></div><div>${badge(away)}<strong>${escapeHtml(away.name)}</strong></div></div>
+      <div class="match-canvas-shell"><canvas id="matchCanvas" width="960" height="540"></canvas><div class="match-event-banner" id="matchEventBanner"></div><div class="match-render-badge">${actualMode==='3d'?'3D WEBGL':'2D CANVAS'}</div></div>
+      <div class="match-controls"><button class="primary-btn" id="startMatchBtn">Mulai</button><button class="ghost-btn" id="pauseMatchBtn">Pause</button><select class="select" id="speedSelect" aria-label="Kecepatan"><option value="1">1x</option><option value="2">2x</option><option value="4">4x</option><option value="8">8x</option></select><select class="select" id="mentalitySelect" aria-label="Mentalitas"><option>Seimbang</option><option>Menyerang</option><option>Bertahan</option><option>Pressing Tinggi</option></select><select class="select" id="matchViewSelect" aria-label="Mode visual"><option value="3d" ${mode==='3d'?'selected':''}>3D Low-poly</option><option value="2d" ${mode==='2d'?'selected':''}>2D Ringan</option></select><select class="select" id="qualitySelect" aria-label="Kualitas 3D"><option value="low" ${quality==='low'?'selected':''}>Kualitas Low</option><option value="medium" ${quality==='medium'?'selected':''}>Kualitas Medium</option><option value="high" ${quality==='high'?'selected':''}>Kualitas High</option></select><select class="select" id="cameraSelect" aria-label="Kamera"><option value="broadcast" ${camera==='broadcast'?'selected':''}>Kamera Broadcast</option><option value="sideline" ${camera==='sideline'?'selected':''}>Kamera Pinggir</option><option value="follow" ${camera==='follow'?'selected':''}>Ikuti Bola</option></select></div></div>
+      <div class="card"><h2>Komentar Langsung</h2><div class="commentary" id="commentary"><div class="comment-line">Tekan Mulai. Wasit masih cari peluit.</div></div><div class="divider"></div><div class="stat-grid"><div class="stat-box"><span>Possession</span><strong id="posStat">50-50</strong></div><div class="stat-box"><span>Shots</span><strong id="shotStat">0-0</strong></div><div class="stat-box"><span>xG</span><strong id="xgStat">0.00-0.00</strong></div><div class="stat-box"><span>Cards</span><strong id="cardStat">0-0</strong></div></div></div></div>`;
+    const engine=new MatchEngine($('#matchCanvas'),home,away); ui.currentMatch=engine; ui.cleanup=()=>engine.destroy();
+    $('#startMatchBtn').addEventListener('click',()=>engine.start());
+    $('#pauseMatchBtn').addEventListener('click',()=>engine.togglePause());
+    $('#speedSelect').addEventListener('change',e=>engine.speed=Number(e.target.value));
+    $('#mentalitySelect').addEventListener('change',e=>engine.mentality=e.target.value);
+    $('#qualitySelect').addEventListener('change',e=>{state.settings.matchQuality=e.target.value;engine.setQuality(e.target.value);scheduleSave();toast(`Kualitas 3D: ${e.target.value}. Kalau Low masih ngelag, HP lu minta pensiun.`)});
+    $('#cameraSelect').addEventListener('change',e=>{state.settings.matchCamera=e.target.value;engine.setCamera(e.target.value);scheduleSave()});
+    $('#matchViewSelect').addEventListener('change',e=>{
+      state.settings.matchView=e.target.value;scheduleSave();
+      engine.destroy();ui.cleanup=null;renderView();
+      toast(e.target.value==='3d'?'Mode 3D dinyalakan. Chipset, lakukan tugas negaramu.':'Balik ke 2D ringan. Tidak semua perang harus dimenangkan dengan polygon.');
+    });
+    if(mode==='3d'&&!webglReady)toast('WebGL tidak tersedia. Otomatis turun ke mode 2D.',true);
+  }
+
+  class MatchEngine{
+    constructor(canvas,home,away){
+      this.canvas=canvas;this.ctx=null;this.renderer3d=null;this.mode=state.settings.matchView||'3d';this.home=home;this.away=away;this.running=false;this.paused=false;this.finished=false;this.minute=0;this.speed=1;this.mentality='Seimbang';this.homeScore=0;this.awayScore=0;this.shots=[0,0];this.xg=[0,0];this.cards=[0,0];this.pos=50;this.lastFrame=0;this.tickTimer=null;this.raf=0;this.bannerTimer=null;this.ball={x:.5,y:.5,tx:.5,ty:.5};
+      this.initRenderer();
+      this.players=this.makePlayers(); this.resize(); this.resizeHandler=()=>this.resize(); window.addEventListener('resize',this.resizeHandler,{passive:true});
+      this.visibilityHandler=()=>{if(document.hidden)this.paused=true};document.addEventListener('visibilitychange',this.visibilityHandler);
+      this.loop=ts=>this.frame(ts);this.raf=requestAnimationFrame(this.loop);
+    }
+    initRenderer(){
+      if(this.mode==='3d'&&window.FFU3D?.isSupported?.()){
+        try{
+          this.renderer3d=new window.FFU3D.MatchScene(this.canvas,{homeColor:this.home.colors?.[0],awayColor:this.away.colors?.[0],quality:state.settings.matchQuality||'low',camera:state.settings.matchCamera||'broadcast',reducedMotion:state.reducedMotion});
+          return;
+        }catch(err){
+          console.warn('Renderer 3D gagal, turun ke 2D',err);
+          const replacement=this.canvas.cloneNode(false);this.canvas.replaceWith(replacement);this.canvas=replacement;this.mode='2d';
+        }
+      }
+      this.mode='2d';this.ctx=this.canvas.getContext('2d',{alpha:false});
+    }
+    setQuality(value){this.renderer3d?.setQuality(value)}
+    setCamera(value){this.renderer3d?.setCamera(value)}
+    makePlayers(){const list=[];for(let team=0;team<2;team++){for(let i=0;i<11;i++){const col=i%4,row=Math.floor(i/4);const x=team===0?.12+col*.12:.88-col*.12;const y=.12+(row%3)*.37;list.push({team,index:i,x,y,tx:x,ty:y,vx:0,vy:0})}}return list}
+    resize(){if(this.renderer3d){this.renderer3d.resize();return}const r=this.canvas.getBoundingClientRect();const dpr=Math.min(window.devicePixelRatio||1,1.5);const w=Math.max(600,Math.round(r.width*dpr)),h=Math.round(w*9/16);if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h}}
+    start(){if(this.finished){toast('Pertandingan sudah selesai. Lanjut pekan untuk laga baru.');return}if(!this.running){this.running=true;this.paused=false;this.addComment(0,'Kick-off! Pertandingan dimulai.');this.showBanner('KICK OFF','neutral',900);playSound('whistle');this.scheduleTick()}else this.paused=false}
+    togglePause(){if(!this.running)return;this.paused=!this.paused;$('#pauseMatchBtn').textContent=this.paused?'Lanjut':'Pause';this.addComment(this.minute,this.paused?'Pertandingan dijeda. Taktik boleh diubah.':'Pertandingan dilanjutkan.');this.showBanner(this.paused?'PAUSED':'LANJUT','neutral',650)}
+    scheduleTick(){clearTimeout(this.tickTimer);if(this.finished)return;this.tickTimer=setTimeout(()=>{if(!this.paused)this.eventTick();this.scheduleTick()},Math.max(350,1100/this.speed))}
+    eventTick(){this.minute=Math.min(90,this.minute+randFrom(`${Date.now()}${this.minute}`,1,3));this.updateTargets();this.generateEvent();this.updateUI();if(this.minute>=90)this.finish()}
+    updateTargets(){
+      this.ball.tx=.12+Math.random()*.76;this.ball.ty=.08+Math.random()*.84;
+      for(const p of this.players){const dir=p.team===0?1:-1;const baseX=p.team===0?.15+(p.index%4)*.11:.85-(p.index%4)*.11;const baseY=.12+(Math.floor(p.index/4)%3)*.38;const chase=Math.max(0,.18-Math.abs(p.y-this.ball.y));p.tx=Math.max(.05,Math.min(.95,baseX+dir*(this.ball.x-.5)*.2+(Math.random()-.5)*.07+chase*dir));p.ty=Math.max(.06,Math.min(.94,baseY+(this.ball.y-.5)*.15+(Math.random()-.5)*.08))}
+    }
+    generateEvent(){
+      const hs=clubStrength(this.home.id),as=clubStrength(this.away.id);const attackBias=(hs-as)/45+(this.mentality==='Menyerang'?.09:this.mentality==='Bertahan'?-.07:0);const homeChance=Math.max(.24,Math.min(.76,.5+attackBias));const team=Math.random()<homeChance?0:1;const roll=Math.random();
+      if(roll<.13){this.shots[team]++;const quality=.05+Math.random()*.28;this.xg[team]+=quality;if(Math.random()<quality*(team===0?1.15:1)){team===0?this.homeScore++:this.awayScore++;const scorer=this.pickAttacker(team);this.addComment(this.minute,`GOOOL! ${scorer?.name||'Penyerang'} menuntaskan peluang dengan dingin.`, 'goal');this.playVisualEvent('goal',team,`GOOOL • ${scorer?.name||'PENYERANG'}`);playSound('goal')}else{this.addComment(this.minute,`${this.pickAttacker(team)?.name||'Pemain'} melepaskan tembakan, tetapi belum jadi gol.`);this.playVisualEvent('shot',team,'TEMBAKAN!')}}
+      else if(roll<.19){this.cards[team]++;this.addComment(this.minute,`Kartu kuning setelah tekel terlambat di tengah lapangan.`,'cardline');this.playVisualEvent('card',team,'KARTU KUNING');playSound('card')}
+      else if(roll<.25){this.addComment(this.minute,`Peluang dari bola mati. Pertahanan masih berhasil menyapu bola.`);this.showBanner('BOLA MATI','neutral',650)}
+      else if(roll<.32){this.addComment(this.minute,`${team===0?this.home.name:this.away.name} membangun serangan lewat sisi sayap.`)}
+      else if(roll<.37){const p=this.pickAttacker(team);this.addComment(this.minute,`${p?.name||'Pemain'} menggiring melewati satu pemain, umpan akhirnya dipotong.`)}
+      this.pos=Math.round(Math.max(32,Math.min(68,50+(hs-as)*.65+(Math.random()-.5)*8)));
+    }
+    playVisualEvent(type,team,label){this.renderer3d?.playEvent(type,team);this.showBanner(label,type,type==='goal'?1800:850)}
+    showBanner(text,type='neutral',duration=900){const el=$('#matchEventBanner');if(!el)return;clearTimeout(this.bannerTimer);el.textContent=text;el.className=`match-event-banner show ${type}`;this.bannerTimer=setTimeout(()=>{if(el)el.className='match-event-banner'},duration)}
+    pickAttacker(team){const cid=team===0?this.home.id:this.away.id;const ps=clubPlayers(cid).filter(p=>['ST','CF','LW','RW','AM'].includes(p.position)).sort((a,b)=>b.overall-a.overall);return ps[randFrom(`${this.minute}${team}`,0,Math.max(0,ps.length-1))]}
+    addComment(min,text,cls=''){const box=$('#commentary');if(!box)return;const d=document.createElement('div');d.className=`comment-line ${cls}`;d.innerHTML=`<span class="minute">${min}'</span>${escapeHtml(text)}`;box.prepend(d);while(box.children.length>80)box.removeChild(box.lastChild)}
+    updateUI(){if(!$('#matchMinute'))return;$('#homeScore').textContent=this.homeScore;$('#awayScore').textContent=this.awayScore;$('#matchMinute').textContent=`Menit ${this.minute}`;$('#posStat').textContent=`${this.pos}-${100-this.pos}`;$('#shotStat').textContent=`${this.shots[0]}-${this.shots[1]}`;$('#xgStat').textContent=`${this.xg[0].toFixed(2)}-${this.xg[1].toFixed(2)}`;$('#cardStat').textContent=`${this.cards[0]}-${this.cards[1]}`}
+    finish(){this.finished=true;this.running=false;clearTimeout(this.tickTimer);this.addComment(90,`Full time: ${this.home.name} ${this.homeScore}-${this.awayScore} ${this.away.name}.`,'goal');this.showBanner('FULL TIME','neutral',1800);playSound('whistle');state.matchHistory.unshift({date:state.date,home:this.home.name,away:this.away.name,score:`${this.homeScore}-${this.awayScore}`});updateStandingResult(this.home.id,this.away.id,this.homeScore,this.awayScore);state.news.unshift({title:`${this.home.name} ${this.homeScore}-${this.awayScore} ${this.away.name}`,meta:'Hasil pertandingan • Baru saja'});scheduleSave();toast('Pertandingan selesai dan hasil tersimpan.')}
+    frame(ts){
+      const targetFps=state.reducedMotion?20:(state.settings.matchFps||30);if(ts-this.lastFrame>=1000/targetFps){this.lastFrame=ts;const dt=.055*Math.min(2,this.speed);if(this.running&&!this.paused){this.ball.x+=(this.ball.tx-this.ball.x)*dt*1.9;this.ball.y+=(this.ball.ty-this.ball.y)*dt*1.9;for(const p of this.players){p.x+=(p.tx-p.x)*dt;p.y+=(p.ty-p.y)*dt}}this.draw(ts)}
+      this.raf=requestAnimationFrame(this.loop);
+    }
+    draw(ts=performance.now()){
+      if(this.renderer3d){this.renderer3d.render(this.players,this.ball,ts);return}
+      const c=this.ctx,w=this.canvas.width,h=this.canvas.height;if(!c)return;c.fillStyle='#176534';c.fillRect(0,0,w,h);
+      c.fillStyle='rgba(255,255,255,.025)';for(let i=0;i<8;i+=2)c.fillRect(i*w/8,0,w/8,h);
+      c.strokeStyle='rgba(255,255,255,.62)';c.lineWidth=Math.max(2,w/400);c.strokeRect(w*.025,h*.04,w*.95,h*.92);c.beginPath();c.moveTo(w/2,h*.04);c.lineTo(w/2,h*.96);c.stroke();c.beginPath();c.arc(w/2,h/2,h*.14,0,Math.PI*2);c.stroke();
+      c.strokeRect(w*.025,h*.28,w*.13,h*.44);c.strokeRect(w*.845,h*.28,w*.13,h*.44);
+      const colors=[this.home.colors?.[0]||'#ef4444',this.away.colors?.[0]||'#38bdf8'];
+      for(const p of this.players){const x=p.x*w,y=p.y*h,s=Math.max(9,w/82),dir=Math.sign(p.tx-p.x)||1;c.save();c.translate(x,y);c.scale(dir,1);c.globalAlpha=.22;c.fillStyle='#000';c.beginPath();c.ellipse(0,s*.95,s*.78,s*.28,0,0,Math.PI*2);c.fill();c.globalAlpha=1;c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=Math.max(1.2,w/700);c.beginPath();c.moveTo(-s*.25,s*.42);c.lineTo(-s*.48,s*1.05);c.moveTo(s*.25,s*.42);c.lineTo(s*.48,s*1.05);c.stroke();c.fillStyle=colors[p.team];c.beginPath();c.roundRect(-s*.65,-s*.38,s*1.3,s*1.05,s*.3);c.fill();c.strokeStyle='#f8fafc';c.stroke();c.fillStyle='#c98d63';c.beginPath();c.arc(0,-s*.75,s*.38,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.font=`bold ${Math.max(7,w/115)}px sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillText(String(p.index+1),0,s*.12);c.restore()}
+      c.beginPath();c.arc(this.ball.x*w,this.ball.y*h,Math.max(4,w/170),0,Math.PI*2);c.fillStyle='#fff';c.fill();c.strokeStyle='#111';c.lineWidth=1;c.stroke();
+    }
+    destroy(){clearTimeout(this.tickTimer);clearTimeout(this.bannerTimer);cancelAnimationFrame(this.raf);this.renderer3d?.destroy();window.removeEventListener('resize',this.resizeHandler);document.removeEventListener('visibilitychange',this.visibilityHandler)}
+  }
+
+  function updateStandingResult(homeId,awayId,hg,ag){
+    const league=clubById(homeId)?.league;const table=state.standings[league];if(!table)return;const h=table.find(x=>x.clubId===homeId),a=table.find(x=>x.clubId===awayId);if(!h||!a)return;
+    for(const row of [h,a])row.p++;h.gf+=hg;h.ga+=ag;a.gf+=ag;a.ga+=hg;h.gd=h.gf-h.ga;a.gd=a.gf-a.ga;
+    if(hg>ag){h.w++;a.l++;h.pts+=3}else if(hg<ag){a.w++;h.l++;a.pts+=3}else{h.d++;a.d++;h.pts++;a.pts++}
+    table.sort((x,y)=>y.pts-x.pts||y.gd-x.gd||y.gf-x.gf);
+  }
+
+  function renderTransfers(view){
+    const players=state.players.filter(p=>p.clubId!==state.selectedClubId && (ui.transferPos==='ALL'||p.position===ui.transferPos)&&p.name.toLowerCase().includes(ui.transferQuery.toLowerCase())).sort((a,b)=>b.overall-a.overall);
+    const pageSize=25,pages=Math.max(1,Math.ceil(players.length/pageSize));ui.transferPage=Math.min(ui.transferPage,pages);const rows=players.slice((ui.transferPage-1)*pageSize,ui.transferPage*pageSize);
+    const positions=['ALL',...new Set(state.players.map(p=>p.position))];
+    view.innerHTML=pageHead('Bursa Transfer',`${players.length} target tersedia • foto baru dimuat saat negosiasi supaya nggak ngehang`)+`<div class="card"><div class="toolbar"><input class="input" id="transferSearch" value="${escapeHtml(ui.transferQuery)}" placeholder="Cari nama pemain..."><select class="select" id="transferPos">${positions.map(x=>`<option ${x===ui.transferPos?'selected':''}>${x}</option>`).join('')}</select></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Pemain</th><th>Klub</th><th>Pos</th><th>OVR</th><th>Usia</th><th>Nilai</th><th>Aksi</th></tr></thead><tbody>${rows.map(p=>`<tr><td class="click-row" data-player-id="${p.id}"><div class="player-cell">${playerAvatar(p)}<div><strong>${escapeHtml(p.name)}</strong><div class="muted">${escapeHtml(p.nationality)}</div></div></div></td><td>${escapeHtml(p.club)}</td><td><span class="pos">${p.position}</span></td><td class="rating">${p.overall}</td><td>${p.age}</td><td>${fmtMoney(p.value)}</td><td><button class="primary-btn" data-negotiate="${p.id}">Nego</button></td></tr>`).join('')}</tbody></table></div>${pagination('transfer',ui.transferPage,pages)}</div>`;
+    $('#transferSearch').addEventListener('input',debounce(e=>{ui.transferQuery=e.target.value;ui.transferPage=1;renderView()},180));
+    $('#transferPos').addEventListener('change',e=>{ui.transferPos=e.target.value;ui.transferPage=1;renderView()});
+  }
+
+  function openNegotiation(p){
+    const agentSeed=encodeURIComponent(p.agentName||p.name+' agent');
+    const body=`<h2>Negosiasi Kontrak</h2><p class="card-sub">Klub, agen, gaji, bonus, durasi, dan role. Iya, manusia dewasa memang butuh lima kolom untuk bilang “mau duit berapa”.</p><div class="negotiation-hero" style="margin:18px 0"><div class="negotiation-person"><img id="negoPlayerPhoto" src="${avatarFallback(p.name)}" alt="${escapeHtml(p.name)}"><strong>${escapeHtml(p.name)}</strong><span>${p.position} • OVR ${p.overall}</span></div><div class="negotiation-vs">🤝</div><div class="negotiation-person"><img src="${avatarFallback(p.agentName||p.name+' agent','agent')}" alt="Agen"><strong>${escapeHtml(p.agentName)}</strong><span>Agen pemain</span></div></div>
+      <div id="agentQuote" class="quote">“Klien saya tertarik, tetapi proposal harus mencerminkan kualitas dan ambisinya.”</div>
+      <div class="form-grid"><label class="label">Biaya transfer<input class="input" id="offerFee" type="number" value="${Math.round(p.value*1.05)}"></label><label class="label">Gaji per bulan<input class="input" id="offerWage" type="number" value="${Math.round(p.wage*1.2)}"></label><label class="label">Bonus tanda tangan<input class="input" id="offerBonus" type="number" value="${Math.round(p.wage*3)}"></label><label class="label">Durasi kontrak<select class="select" id="offerYears"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label><label class="label wide">Peran skuad<select class="select" id="offerRole"><option>Rotasi</option><option>Pemain Reguler</option><option selected>Pemain Inti</option><option>Bintang Tim</option></select></label></div>
+      <div class="divider"></div><div class="offer-meter"><i id="offerMeter"></i></div><p class="card-sub" id="offerHint">Peluang kesepakatan dihitung dari nilai, gaji, reputasi klub, role, dan usia.</p><div class="toolbar" style="justify-content:flex-end;margin-top:14px"><button class="ghost-btn" data-close-modal>Batal</button><button class="primary-btn" id="submitOffer">Ajukan Penawaran</button></div>`;
+    openModal(body);
+    resolvePlayerPhoto(p).then(url=>{const img=$('#negoPlayerPhoto');if(img&&url)img.src=url});
+    const inputs=['offerFee','offerWage','offerBonus','offerYears','offerRole'].map(id=>$('#'+id));
+    const calc=()=>{const s=offerScore(p);$('#offerMeter').style.width=`${s}%`;$('#offerHint').textContent=s>=78?'Agen sangat tertarik.':s>=58?'Proposal cukup masuk akal.':s>=40?'Agen minta peningkatan.':'Proposal rawan dilempar balik ke muka lu.'};
+    inputs.forEach(x=>x.addEventListener('input',calc));calc();
+    $('#submitOffer').addEventListener('click',()=>submitOffer(p));
+  }
+  function offerScore(p){
+    const fee=Number($('#offerFee')?.value||0),wage=Number($('#offerWage')?.value||0),bonus=Number($('#offerBonus')?.value||0),years=Number($('#offerYears')?.value||1),role=$('#offerRole')?.value||'Rotasi';
+    const roleScore={'Rotasi':-12,'Pemain Reguler':0,'Pemain Inti':8,'Bintang Tim':14}[role]||0;
+    const repDiff=(currentClub().reputation-(clubById(p.clubId)?.reputation||70))*.7;
+    return Math.round(Math.max(5,Math.min(98,30+(fee/p.value)*18+(wage/p.wage)*22+(bonus/Math.max(1,p.wage))*2+years*2+roleScore+repDiff-(p.overall-75)*.3)));
+  }
+  async function submitOffer(p){
+    const score=offerScore(p),btn=$('#submitOffer');btn.disabled=true;btn.textContent='Agen mempertimbangkan...';playSound('click');await sleep(650);
+    const roll=randFrom(p.id+Date.now(),1,100);const fee=Number($('#offerFee').value),wage=Number($('#offerWage').value),bonus=Number($('#offerBonus').value),years=Number($('#offerYears').value);
+    if(score>=74 || roll<score){
+      if(clubFunds()<fee+bonus){$('#agentQuote').textContent='“Kesepakatan cocok, tetapi saldo klub Anda tidak cukup.”';btn.disabled=false;btn.textContent='Ajukan Penawaran';toast('Saldo klub nggak cukup. Dompet ikut pressing.',true);return}
+      const oldClub=p.club;updateFunds(-(fee+bonus));p.clubId=state.selectedClubId;p.club=currentClub().name;p.league=currentClub().league;p.country=currentClub().country;p.wage=wage;p.contractYears=years;p.morale=Math.min(100,p.morale+8);state.transactions.unshift({id:cryptoId(),date:state.date,type:`Transfer ${p.name}`,amount:-(fee+bonus)});state.news.unshift({title:`${p.name} resmi bergabung dengan ${currentClub().name}`,meta:'Transfer • Baru saja'});ensureLineup(state,state.selectedClubId);scheduleSave();playSound('goal');closeModal();toast(`${p.name} resmi datang dari ${oldClub}.`);renderView();
+    }else if(score>=42){$('#agentQuote').textContent='“Kami belum menerima, tapi bisa lanjut jika gaji atau bonus dinaikkan.”';$('#offerWage').value=Math.round(wage*1.1);$('#offerBonus').value=Math.round(bonus*1.15);btn.disabled=false;btn.textContent='Ajukan Penawaran Ulang';$('#offerMeter').style.width=`${offerScore(p)}%`;playSound('card')}
+    else{$('#agentQuote').textContent='“Proposal ini tidak serius. Klien saya memilih menghentikan pembicaraan.”';btn.disabled=false;btn.textContent='Coba Lagi';playSound('card')}
+  }
+
+  function renderScouting(view){
+    const players=state.players.filter(p=>p.clubId!==state.selectedClubId && p.name.toLowerCase().includes(ui.scoutQuery.toLowerCase())).sort((a,b)=>(a.scouted-b.scouted)||b.potential-a.potential);
+    const pageSize=24,pages=Math.max(1,Math.ceil(players.length/pageSize));ui.scoutPage=Math.min(ui.scoutPage,pages);const rows=players.slice((ui.scoutPage-1)*pageSize,ui.scoutPage*pageSize);
+    view.innerHTML=pageHead('Pusat Scouting','Potensi asli disembunyikan sampai laporan selesai. Jadi scout akhirnya punya pekerjaan, bukan pajangan berjas.')+`<div class="card"><div class="toolbar"><input class="input" id="scoutSearch" value="${escapeHtml(ui.scoutQuery)}" placeholder="Cari target scouting..."></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Pemain</th><th>Usia</th><th>Pos</th><th>OVR</th><th>Potensi</th><th>Biaya Scout</th><th></th></tr></thead><tbody>${rows.map(p=>`<tr class="click-row"><td data-player-id="${p.id}"><div class="player-cell">${playerAvatar(p)}<div><strong>${escapeHtml(p.name)}</strong><div class="muted">${escapeHtml(p.club)} • ${escapeHtml(p.nationality)}</div></div></div></td><td>${p.age}</td><td><span class="pos">${p.position}</span></td><td>${p.overall}</td><td>${p.scouted?`<span class="tag">${p.potential} • ${potentialLabel(p.potential)}</span>`:'<span class="tag warn">Belum diketahui</span>'}</td><td>${fmtMoney(25_000_000+p.overall*1_500_000)}</td><td>${p.scouted?'<button class="ghost-btn" data-player-id="'+p.id+'">Lihat</button>':'<button class="primary-btn" data-scout="'+p.id+'">Scout</button>'}</td></tr>`).join('')}</tbody></table></div>${pagination('scout',ui.scoutPage,pages)}</div>`;
+    $('#scoutSearch').addEventListener('input',debounce(e=>{ui.scoutQuery=e.target.value;ui.scoutPage=1;renderView()},180));
+  }
+  function scoutPlayer(p){const cost=25_000_000+p.overall*1_500_000;if(clubFunds()<cost)return toast('Saldo scouting kurang.',true);updateFunds(-cost);p.scouted=true;state.transactions.unshift({id:cryptoId(),date:state.date,type:`Laporan scout: ${p.name}`,amount:-cost});scheduleSave();playSound('click');toast(`Laporan ${p.name}: ${potentialLabel(p.potential)}.`);closeModal();renderView()}
+
+  function renderCompetition(view){
+    const leagues=['BRI Super League','Premier League','La Liga'];const current=state.competitionTab||currentClub().league;const table=state.standings[current]||[];
+    view.innerHTML=pageHead('Kompetisi','Liga Indonesia disimulasikan penuh; Inggris dan Spanyol berjalan sebagai dunia pendukung.')+`<div class="toolbar">${leagues.map(l=>`<button class="${l===current?'primary-btn':'ghost-btn'}" data-league-tab="${l}">${l}</button>`).join('')}</div><div class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Klub</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>PTS</th></tr></thead><tbody>${table.map((r,i)=>`<tr ${r.clubId===state.selectedClubId?'style="background:#173123"':''}><td>${i+1}</td><td><strong>${escapeHtml(r.club)}</strong></td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gd}</td><td class="rating">${r.pts}</td></tr>`).join('')}</tbody></table></div></div>`;
+  }
+
+  function renderFinance(view){
+    const income=state.transactions.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0),expense=Math.abs(state.transactions.filter(t=>t.amount<0).reduce((s,t)=>s+t.amount,0));
+    view.innerHTML=pageHead('Keuangan Klub','Gaji, sponsor, tiket, merchandise, hak siar, transfer. Semuanya rupiah, karena konversi mata uang adalah penderitaan tambahan.')+`<div class="grid kpi">${kpi('Saldo',fmtMoney(clubFunds()),'Kas tersedia')}${kpi('Total Pemasukan',fmtMoney(income),'Musim berjalan')}${kpi('Total Pengeluaran',fmtMoney(expense),'Musim berjalan')}${kpi('Proyeksi Bulanan',fmtMoney((income-expense)/Math.max(1,state.week)),'Rata-rata per pekan')}</div><div class="grid two" style="margin-top:15px"><div class="card"><h2>Transaksi Terakhir</h2><div class="finance-list">${state.transactions.slice(0,20).map(t=>`<div class="finance-row"><div><strong>${escapeHtml(t.type)}</strong><div class="muted">${escapeHtml(t.date)}</div></div><strong class="${t.amount>=0?'positive':'negative'}">${t.amount>=0?'+':''}${fmtFullMoney(t.amount)}</strong></div>`).join('')}</div></div><div class="card"><h2>Sumber Pendapatan</h2>${financeMeter('Sponsor',72)}${financeMeter('Hak siar',60)}${financeMeter('Tiket',48)}${financeMeter('Merchandise',35)}<div class="divider"></div><h3>Pengeluaran</h3>${financeMeter('Gaji pemain dan staf',78)}${financeMeter('Transfer dan agen',56)}${financeMeter('Operasional stadion',34)}</div></div>`;
+  }
+  function financeMeter(name,val){return `<div style="margin:12px 0"><div class="finance-row" style="padding:0 0 6px"><span>${name}</span><strong>${val}%</strong></div>${bar(val)}</div>`}
+
+  function renderAdmin(view){
+    const tabs=[['players','Pemain'],['clubs','Klub'],['database','Database & Save']];
+    view.innerHTML=pageHead('Admin Database','Akses lokal tanpa login, karena yang main cuma lu. Tetap ada reset supaya eksperimen goblok bisa dibatalkan.')+`<div class="toolbar">${tabs.map(([id,l])=>`<button class="${ui.adminTab===id?'primary-btn':'ghost-btn'}" data-admin-tab="${id}">${l}</button>`).join('')}</div><div id="adminContent"></div>`;
+    renderAdminContent();
+  }
+  function renderAdminContent(){
+    const root=$('#adminContent');if(!root)return;
+    if(ui.adminTab==='players'){
+      const all=state.players.filter(p=>p.name.toLowerCase().includes(ui.adminQuery.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name));const ps=30,pages=Math.max(1,Math.ceil(all.length/ps));ui.adminPage=Math.min(ui.adminPage,pages);const rows=all.slice((ui.adminPage-1)*ps,ui.adminPage*ps);
+      root.innerHTML=`<div class="card"><div class="toolbar"><input class="input" id="adminSearch" value="${escapeHtml(ui.adminQuery)}" placeholder="Cari pemain untuk diedit..."><button class="primary-btn" id="addPlayerBtn">+ Tambah Pemain</button></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Nama</th><th>Negara</th><th>Klub</th><th>Pos</th><th>OVR/POT</th><th>Aksi</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.nationality)}</td><td>${escapeHtml(p.club)}</td><td>${p.position}</td><td>${p.overall}/${p.potential}</td><td><button class="ghost-btn" data-admin-edit="${p.id}">Edit</button> <button class="danger-btn" data-delete-player="${p.id}">Hapus</button></td></tr>`).join('')}</tbody></table></div>${pagination('admin',ui.adminPage,pages)}</div>`;
+      $('#adminSearch').addEventListener('input',debounce(e=>{ui.adminQuery=e.target.value;ui.adminPage=1;renderAdminContent()},180));$('#addPlayerBtn').addEventListener('click',()=>openPlayerEditor());
+    }else if(ui.adminTab==='clubs'){
+      root.innerHTML=`<div class="card"><div class="toolbar"><button class="primary-btn" id="addClubBtn">+ Tambah Klub</button></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Klub</th><th>Negara</th><th>Liga</th><th>Kekuatan</th><th>Dana</th><th>Aksi</th></tr></thead><tbody>${state.clubs.map(c=>`<tr><td><strong>${escapeHtml(c.name)}</strong></td><td>${escapeHtml(c.country)}</td><td>${escapeHtml(c.league)}</td><td>${c.strength}</td><td>${fmtMoney(clubFunds(c.id))}</td><td><button class="ghost-btn" data-edit-club="${c.id}">Edit</button> <button class="danger-btn" data-delete-club="${c.id}" ${c.id===state.selectedClubId?'disabled':''}>Hapus</button></td></tr>`).join('')}</tbody></table></div></div>`;$('#addClubBtn').addEventListener('click',()=>openClubEditor());
+    }else{
+      root.innerHTML=`<div class="grid two"><div class="card"><h2>Save Slots</h2>${Array.from({length:SAVE_SLOTS},(_,i)=>i+1).map(slot=>{const s=loadSlot(slot);return `<div class="finance-row"><div><strong>Slot ${slot}${slot===activeSlot?' • Aktif':''}</strong><div class="muted">${s?`${escapeHtml(s.managerName)} • Pekan ${s.week} • ${escapeHtml(clubByIdFrom(s,s.selectedClubId)?.name||'Klub')}`:'Kosong'}</div></div><div>${s?`<button class="ghost-btn" data-load-slot="${slot}">Muat</button> <button class="danger-btn" data-delete-slot="${slot}">Hapus</button>`:`<button class="primary-btn" data-save-slot="${slot}">Simpan</button>`}</div></div>`}).join('')}</div><div class="card"><h2>Ekspor / Impor</h2><p class="card-sub">File JSON menyimpan seluruh database, hasil, transfer, dan setting.</p><div class="toolbar"><button class="primary-btn" id="exportBtn">Ekspor JSON</button><label class="ghost-btn">Impor JSON<input type="file" id="importFile" accept="application/json" hidden></label><button class="danger-btn" id="resetBtn">Reset Database Awal</button></div><div class="divider"></div><h3>Ringkasan</h3><div class="finance-list"><div class="finance-row"><span>Pemain</span><strong>${state.players.length}</strong></div><div class="finance-row"><span>Klub</span><strong>${state.clubs.length}</strong></div><div class="finance-row"><span>Versi</span><strong>${VERSION}</strong></div></div></div></div>`;
+      $('#exportBtn').addEventListener('click',exportSave);$('#importFile').addEventListener('change',importSave);$('#resetBtn').addEventListener('click',confirmReset);
+    }
+  }
+  function clubByIdFrom(s,id){return s.clubs?.find(c=>c.id===id)}
+
+  function openPlayerEditor(p=null){
+    const isEdit=!!p;const base=p||{name:'',nationality:'Indonesia',clubId:state.selectedClubId,position:'CM',overall:70,potential:80,age:20,foot:'Right',height:175,weight:68,number:1,wage:50_000_000,value:5_000_000_000,contractYears:3,morale:75,fitness:100,form:70,stats:{apps:0,goals:0,assists:0,rating:0},traits:[],secondaryPositions:[],attributes:{pace:70,shooting:70,passing:70,dribbling:70,defending:70,physical:70,stamina:70,goalkeeping:35,finishing:70,vision:70,tackling:70,composure:70}};
+    openModal(`<h2>${isEdit?'Edit':'Tambah'} Pemain</h2><div class="form-grid"><label class="label wide">Nama<input class="input" id="epName" value="${escapeHtml(base.name)}"></label><label class="label wide">URL Foto (opsional)<input class="input" id="epPhoto" value="${escapeHtml(base.photoUrl||'')}" placeholder="https://..."></label><label class="label wide">Nama Agen<input class="input" id="epAgent" value="${escapeHtml(base.agentName||'Independent Sports Management')}"></label><label class="label">Negara<input class="input" id="epNation" value="${escapeHtml(base.nationality)}"></label><label class="label">Klub<select class="select" id="epClub">${state.clubs.map(c=>`<option value="${c.id}" ${c.id===base.clubId?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}</select></label><label class="label">Posisi<input class="input" id="epPos" value="${base.position}"></label><label class="label">Posisi tambahan<input class="input" id="epSecondary" value="${escapeHtml((base.secondaryPositions||[]).join(', '))}" placeholder="LW, RW, ST"></label><label class="label wide">Traits<input class="input" id="epTraits" value="${escapeHtml((base.traits||[]).join(', '))}" placeholder="Clinical Finisher, Flair"></label><label class="label">Nomor<input class="input" id="epNumber" type="number" value="${base.number}"></label><label class="label">Usia<input class="input" id="epAge" type="number" value="${base.age}"></label><label class="label">Kaki<select class="select" id="epFoot"><option value="Right" ${base.foot==='Right'?'selected':''}>Kanan</option><option value="Left" ${base.foot==='Left'?'selected':''}>Kiri</option></select></label><label class="label">OVR<input class="input" id="epOvr" type="number" min="1" max="100" value="${base.overall}"></label><label class="label">Potential<input class="input" id="epPot" type="number" min="1" max="100" value="${base.potential}"></label><label class="label">Tinggi cm<input class="input" id="epHeight" type="number" value="${base.height}"></label><label class="label">Berat kg<input class="input" id="epWeight" type="number" value="${base.weight}"></label><label class="label">Nilai pasar<input class="input" id="epValue" type="number" value="${base.value}"></label><label class="label">Gaji/bulan<input class="input" id="epWage" type="number" value="${base.wage}"></label><label class="label">Sisa kontrak (tahun)<input class="input" id="epContract" type="number" min="0" max="10" value="${base.contractYears??3}"></label><label class="label">Morale<input class="input" id="epMorale" type="number" min="1" max="100" value="${base.morale??75}"></label><label class="label">Fitness<input class="input" id="epFitness" type="number" min="1" max="100" value="${base.fitness??100}"></label><label class="label">Form<input class="input" id="epForm" type="number" min="1" max="100" value="${base.form??70}"></label><label class="label">Penampilan<input class="input" id="epApps" type="number" min="0" value="${base.stats?.apps??0}"></label><label class="label">Gol<input class="input" id="epGoals" type="number" min="0" value="${base.stats?.goals??0}"></label><label class="label">Assist<input class="input" id="epAssists" type="number" min="0" value="${base.stats?.assists??0}"></label><label class="label">Rating<input class="input" id="epRating" type="number" min="0" max="10" step="0.1" value="${base.stats?.rating??0}"></label>${Object.keys(base.attributes).map(k=>`<label class="label">${attrName(k)}<input class="input epAttr" data-attr="${k}" type="number" min="1" max="100" value="${base.attributes[k]}"></label>`).join('')}</div><div class="toolbar" style="justify-content:flex-end;margin-top:16px"><button class="ghost-btn" data-close-modal>Batal</button><button class="primary-btn" id="savePlayerEdit">Simpan</button></div>`);
+    $('#savePlayerEdit').addEventListener('click',()=>{
+      const oldClubId=p?.clubId;const club=clubById($('#epClub').value);const attrs={};$$('.epAttr').forEach(x=>attrs[x.dataset.attr]=clamp(Number(x.value),1,100));const obj=isEdit?p:{id:'p-'+cryptoId().slice(0,10),stats:{apps:0,goals:0,assists:0,rating:0},morale:75,fitness:100,form:70,contractYears:3,scouted:true,photoUrl:'',agentName:'Independent Sports Management',traits:[],secondaryPositions:[]};
+      Object.assign(obj,{name:$('#epName').value.trim()||'Pemain Tanpa Nama',nationality:$('#epNation').value.trim()||'Indonesia',clubId:club.id,club:club.name,league:club.league,country:club.country,position:$('#epPos').value.trim().toUpperCase()||'CM',number:Number($('#epNumber').value),age:Number($('#epAge').value),foot:$('#epFoot').value,overall:clamp(Number($('#epOvr').value),1,100),potential:clamp(Number($('#epPot').value),1,100),height:Number($('#epHeight').value),weight:Number($('#epWeight').value),value:Number($('#epValue').value),wage:Number($('#epWage').value),contractYears:clamp(Number($('#epContract').value),0,10),morale:clamp(Number($('#epMorale').value),1,100),fitness:clamp(Number($('#epFitness').value),1,100),form:clamp(Number($('#epForm').value),1,100),stats:{apps:Math.max(0,Number($('#epApps').value)||0),goals:Math.max(0,Number($('#epGoals').value)||0),assists:Math.max(0,Number($('#epAssists').value)||0),rating:Math.max(0,Math.min(10,Number($('#epRating').value)||0))},photoUrl:$('#epPhoto').value.trim(),agentName:$('#epAgent').value.trim()||'Independent Sports Management',secondaryPositions:$('#epSecondary').value.split(',').map(x=>x.trim().toUpperCase()).filter(Boolean),traits:$('#epTraits').value.split(',').map(x=>x.trim()).filter(Boolean),attributes:attrs});
+      if(!isEdit)state.players.push(obj);for(const id of Object.keys(state.lineups))state.lineups[id]=state.lineups[id].filter(x=>x!==obj.id);if(oldClubId)ensureLineup(state,oldClubId);ensureLineup(state,club.id);scheduleSave();closeModal();toast('Data pemain disimpan. Statistik, status, dan atribut ikut diperbarui.');renderView();
+    });
+  }
+  function clamp(n,a,b){return Math.max(a,Math.min(b,n||a))}
+
+  function openClubEditor(c=null){
+    const base=c||{name:'',country:'Indonesia',league:'BRI Super League',code:'NEW',strength:70,reputation:70,stadium:'Stadion Baru',budget:50_000_000_000,colors:['#16a34a','#07120d']};
+    openModal(`<h2>${c?'Edit':'Tambah'} Klub</h2><div class="form-grid"><label class="label wide">Nama<input class="input" id="ecName" value="${escapeHtml(base.name)}"></label><label class="label">Kode<input class="input" id="ecCode" value="${escapeHtml(base.code)}"></label><label class="label">Negara<input class="input" id="ecCountry" value="${escapeHtml(base.country)}"></label><label class="label">Liga<input class="input" id="ecLeague" value="${escapeHtml(base.league)}"></label><label class="label">Stadion<input class="input" id="ecStadium" value="${escapeHtml(base.stadium)}"></label><label class="label">Kekuatan<input class="input" id="ecStrength" type="number" value="${base.strength}"></label><label class="label">Reputasi<input class="input" id="ecRep" type="number" value="${base.reputation}"></label><label class="label">Dana<input class="input" id="ecBudget" type="number" value="${clubFunds(base.id)||base.budget}"></label></div><div class="toolbar" style="justify-content:flex-end;margin-top:16px"><button class="ghost-btn" data-close-modal>Batal</button><button class="primary-btn" id="saveClubEdit">Simpan</button></div>`);
+    $('#saveClubEdit').addEventListener('click',()=>{const oldLeague=c?.league;const obj=c||{id:'club-'+cryptoId().slice(0,8),colors:['#16a34a','#07120d']};Object.assign(obj,{name:$('#ecName').value.trim()||'Klub Baru',code:$('#ecCode').value.trim().toUpperCase().slice(0,4)||'NEW',country:$('#ecCountry').value.trim(),league:$('#ecLeague').value.trim(),stadium:$('#ecStadium').value.trim(),strength:clamp(Number($('#ecStrength').value),1,100),reputation:clamp(Number($('#ecRep').value),1,100)});if(!c)state.clubs.push(obj);state.fundsByClub[obj.id]=Number($('#ecBudget').value);state.players.filter(p=>p.clubId===obj.id).forEach(p=>{p.club=obj.name;p.league=obj.league;p.country=obj.country});if(oldLeague&&oldLeague!==obj.league&&state.standings[oldLeague])state.standings[oldLeague]=state.standings[oldLeague].filter(r=>r.clubId!==obj.id);state.standings[obj.league] ||= [];let row=state.standings[obj.league].find(r=>r.clubId===obj.id);if(row)row.club=obj.name;else state.standings[obj.league].push({clubId:obj.id,club:obj.name,p:0,w:0,d:0,l:0,gf:0,ga:0,gd:0,pts:0});scheduleSave();closeModal();toast('Data klub, pemain, dan kompetisinya ikut diperbarui.');renderView()});
+  }
+
+  function renderSettings(view){
+    view.innerHTML=pageHead('Pengaturan','Mode performa dibuat waras: 30 FPS, gambar lazy-load, autosave idle, tabel paginasi.')+`<div class="grid two"><div class="card"><h2>Profil Manajer</h2><div class="form-grid"><label class="label wide">Nama Manajer<input class="input" id="managerNameInput" value="${escapeHtml(state.managerName)}"></label><label class="label wide">Klub yang Dikelola<select class="select" id="clubSelect">${state.clubs.filter(c=>['Indonesia','England','Spain'].includes(c.country)).map(c=>`<option value="${c.id}" ${c.id===state.selectedClubId?'selected':''}>${escapeHtml(c.name)} • ${escapeHtml(c.league)}</option>`).join('')}</select></label></div><button class="primary-btn" id="saveProfileBtn" style="margin-top:12px">Simpan Profil</button></div><div class="card"><h2>Performa & Suara</h2><div class="finance-list"><div class="finance-row"><span>Efek suara pertandingan</span><input type="checkbox" id="soundToggle" ${state.sound?'checked':''}></div><div class="finance-row"><span>Kurangi animasi</span><input type="checkbox" id="motionToggle" ${state.reducedMotion?'checked':''}></div><div class="finance-row"><span>Autosave</span><input type="checkbox" id="autosaveToggle" ${state.settings.autosave?'checked':''}></div><div class="finance-row"><span>FPS pertandingan</span><select class="select" id="fpsSelect"><option ${state.settings.matchFps===20?'selected':''}>20</option><option ${state.settings.matchFps===30?'selected':''}>30</option><option ${state.settings.matchFps===45?'selected':''}>45</option></select></div></div><p class="card-sub">Untuk HP kelas menengah ke bawah, 30 FPS paling stabil. 45 FPS tersedia kalau perangkat lu merasa dirinya console.</p></div></div>`;
+    $('#saveProfileBtn').addEventListener('click',()=>{state.managerName=$('#managerNameInput').value.trim()||state.managerName;state.selectedClubId=$('#clubSelect').value;ensureLineup(state,state.selectedClubId);scheduleSave();updateShell();toast('Profil manajer disimpan.');renderView()});
+    $('#soundToggle').addEventListener('change',e=>{state.sound=e.target.checked;updateShell();scheduleSave()});$('#motionToggle').addEventListener('change',e=>{state.reducedMotion=e.target.checked;scheduleSave()});$('#autosaveToggle').addEventListener('change',e=>{state.settings.autosave=e.target.checked;scheduleSave()});$('#fpsSelect').addEventListener('change',e=>{state.settings.matchFps=Number(e.target.value);scheduleSave()});
+  }
+
+  function advanceWeek(){
+    state.week++;const d=new Date(state.date+'T12:00:00');d.setDate(d.getDate()+7);state.date=d.toISOString().slice(0,10);
+    const userPlayers=currentPlayers();for(const p of state.players){p.fitness=Math.min(100,p.fitness+randFrom(p.id+state.week,2,9));p.form=clamp(p.form+randFrom(p.id+'f'+state.week,-3,3),45,99);if(p.age<=27&&p.overall<p.potential&&randFrom(p.id+'grow'+state.week,1,100)<=Math.max(4,(p.potential-p.overall)*.8)){p.overall++;for(const k of Object.keys(p.attributes))if(randFrom(p.id+k+state.week,1,100)<18)p.attributes[k]=clamp(p.attributes[k]+1,1,99)}else if(p.age>=31&&randFrom(p.id+'decline'+state.week,1,100)<(p.age-29)*4){p.overall=Math.max(45,p.overall-1);const keys=Object.keys(p.attributes);const k=keys[randFrom(p.id+'dk'+state.week,0,keys.length-1)];p.attributes[k]=Math.max(35,p.attributes[k]-1)}}
+    const income=1_200_000_000+currentClub().reputation*18_000_000;const wages=userPlayers.reduce((s,p)=>s+p.wage,0);updateFunds(income-wages);state.transactions.unshift({id:cryptoId(),date:state.date,type:'Sponsor, tiket, merchandise & hak siar',amount:income},{id:cryptoId(),date:state.date,type:'Gaji mingguan pemain dan staf',amount:-wages});simulateOtherLeagues();state.news.unshift({title:`Pekan ${state.week}: laporan latihan dan finansial tersedia`,meta:'Klub • Baru saja'});saveNow(false);playSound('click');toast(`Masuk pekan ${state.week}. Kalender dan perkembangan pemain diperbarui.`);renderView();
+  }
+  function simulateOtherLeagues(){for(const [league,table] of Object.entries(state.standings)){const shuffled=[...table].sort(()=>Math.random()-.5);for(let i=0;i<shuffled.length-1;i+=2){const a=shuffled[i],b=shuffled[i+1];if(a.clubId===state.selectedClubId||b.clubId===state.selectedClubId)continue;const sa=clubStrength(a.clubId),sb=clubStrength(b.clubId);const ag=Math.max(0,Math.round((sa-65)/18+Math.random()*2-0.5)),bg=Math.max(0,Math.round((sb-65)/18+Math.random()*2-0.5));updateStandingResult(a.clubId,b.clubId,ag,bg)}}}
+
+  function openModal(html){
+    const tpl=$('#modalTemplate').content.cloneNode(true);tpl.querySelector('.modal-content').innerHTML=html;$('#modalHost').replaceChildren(tpl);document.body.style.overflow='hidden';
+  }
+  function closeModal(){ $('#modalHost').replaceChildren();document.body.style.overflow=''; }
+  function toast(msg,error=false){const d=document.createElement('div');d.className=`toast ${error?'error':''}`;d.textContent=msg;$('#toastHost').appendChild(d);setTimeout(()=>d.remove(),3300)}
+
+  function avatarFallback(name,role='player'){
+    const seed=hash(String(name));const skins=['#f1c7a5','#d9a678','#b87952','#8f5e3f','#f5d1b5'];const hairs=['#17120f','#3a261b','#6f4a2e','#111827','#7c2d12'];const bgs=['#123b28','#15375b','#4a224f','#4b3517','#26334a'];const skin=skins[seed%skins.length],hair=hairs[(seed>>>3)%hairs.length],bg=bgs[(seed>>>6)%bgs.length];const shirt=role==='agent'?'#111827':['#16a34a','#2563eb','#dc2626','#7c3aed'][(seed>>>9)%4];const tie=role==='agent'?`<path d="M60 91l7 10-7 17-7-17z" fill="#dc2626"/>`:'';const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="24" fill="${bg}"/><circle cx="60" cy="50" r="27" fill="${skin}"/><path d="M34 48c1-25 14-35 28-35 17 0 27 12 26 34-8-9-17-14-28-14-10 0-18 5-26 15z" fill="${hair}"/><ellipse cx="50" cy="52" rx="2.7" ry="3.2" fill="#151515"/><ellipse cx="70" cy="52" rx="2.7" ry="3.2" fill="#151515"/><path d="M55 65q5 5 10 0" fill="none" stroke="#7c3f31" stroke-width="2.4" stroke-linecap="round"/><path d="M58 55l-2 7h5" fill="none" stroke="#9b684f" stroke-width="1.7" stroke-linecap="round"/><path d="M20 120c3-28 17-41 40-41s37 13 40 41z" fill="${shirt}"/>${role==='agent'?'<path d="M44 81l16 14 16-14 7 39H37z" fill="#f8fafc"/><path d="M42 83l18 15 18-15 13 37H29z" fill="#111827"/>'+tie:'<path d="M44 83q16 10 32 0" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="3"/>'}</svg>`;return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+  }
+  function getPhotoCache(){try{return JSON.parse(localStorage.getItem(PHOTO_CACHE_KEY)||'{}')}catch{return {}}}
+  async function resolvePlayerPhoto(p){
+    if(p.photoUrl)return p.photoUrl;const cache=getPhotoCache();if(cache[p.name])return cache[p.name];
+    try{
+      const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),4500);const q=encodeURIComponent(`${p.name} footballer`);const url=`https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${q}&gsrlimit=3&prop=pageimages&piprop=thumbnail&pithumbsize=420&format=json&origin=*`;
+      const res=await fetch(url,{signal:controller.signal});clearTimeout(timeout);if(!res.ok)throw new Error('photo');const data=await res.json();const pages=Object.values(data.query?.pages||{});const found=pages.find(x=>x.thumbnail?.source);if(found){cache[p.name]=found.thumbnail.source;localStorage.setItem(PHOTO_CACHE_KEY,JSON.stringify(cache));return found.thumbnail.source}
+    }catch(e){console.debug('Foto fallback',p.name)}
+    return avatarFallback(p.name);
+  }
+
+  let audioCtx;
+  function playSound(type){
+    if(!state.sound)return;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);const now=audioCtx.currentTime;const cfg={goal:[520,.32,.10],whistle:[1100,.16,.08],card:[240,.12,.05],click:[420,.07,.035]}[type]||[400,.08,.03];o.frequency.setValueAtTime(cfg[0],now);if(type==='goal')o.frequency.exponentialRampToValueAtTime(780,now+cfg[1]);g.gain.setValueAtTime(cfg[2],now);g.gain.exponentialRampToValueAtTime(.001,now+cfg[1]);o.start(now);o.stop(now+cfg[1])}catch{}
+  }
+
+  function exportSave(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`FFU-save-slot-${activeSlot}-week-${state.week}.json`;a.click();URL.revokeObjectURL(a.href);toast('Save diekspor ke JSON.')}
+  function importSave(e){const file=e.target.files?.[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const imported=JSON.parse(r.result);if(!imported.players||!imported.clubs)throw new Error();state=imported;migrateState();saveNow();closeModal();navigate('dashboard');toast('Save berhasil diimpor.')}catch{toast('File JSON tidak valid.',true)}};r.readAsText(file)}
+  function confirmReset(){openModal(`<h2>Reset database?</h2><p>Semua transfer, edit pemain, dan hasil pertandingan pada slot aktif akan hilang. Akhirnya tombol yang benar-benar punya konsekuensi.</p><div class="toolbar" style="justify-content:flex-end"><button class="ghost-btn" data-close-modal>Batal</button><button class="danger-btn" id="confirmResetBtn">Reset Sekarang</button></div>`);$('#confirmResetBtn').addEventListener('click',()=>{state=createInitialState();state.hasOnboarded=true;saveNow();closeModal();navigate('dashboard');toast('Database dikembalikan ke awal.')})}
+
+  function showOnboarding(){
+    openModal(`<h2>Mulai Karier Manajer</h2><p class="card-sub">Pilih klub. Fauzan wonderkid umur 16 sudah ada di Real Madrid dengan OVR 70 dan POT 99.</p><div class="form-grid"><label class="label wide">Nama Manajer<input class="input" id="onboardName" value="${escapeHtml(state.managerName)}"></label><label class="label wide">Klub<select class="select" id="onboardClub">${state.clubs.filter(c=>['Indonesia','England','Spain'].includes(c.country)).map(c=>`<option value="${c.id}" ${c.id===state.selectedClubId?'selected':''}>${escapeHtml(c.name)} • ${escapeHtml(c.league)}</option>`).join('')}</select></label></div><button class="primary-btn full" id="startCareerBtn" style="margin-top:16px">Mulai Karier</button>`);
+    $('#startCareerBtn').addEventListener('click',()=>{state.managerName=$('#onboardName').value.trim()||state.managerName;state.selectedClubId=$('#onboardClub').value;state.hasOnboarded=true;ensureLineup(state,state.selectedClubId);saveNow();closeModal();updateShell();renderView();toast('Karier dimulai. Jangan langsung jual semua pemain, barbar.')});
+  }
+
+  function deletePlayer(id){const p=playerById(id);if(!p)return;if(!confirm(`Hapus ${p.name}?`))return;const oldClubId=p.clubId;state.players=state.players.filter(x=>x.id!==id);for(const k of Object.keys(state.lineups))state.lineups[k]=state.lineups[k].filter(x=>x!==id);ensureLineup(state,oldClubId);scheduleSave();renderView();toast('Pemain dihapus dari database dan susunan tim dirapikan.')}
+  function deleteClub(id){const c=clubById(id);if(!c||id===state.selectedClubId)return;if(!confirm(`Hapus ${c.name} dan seluruh pemainnya?`))return;state.clubs=state.clubs.filter(x=>x.id!==id);state.players=state.players.filter(p=>p.clubId!==id);delete state.fundsByClub[id];delete state.lineups[id];for(const league of Object.keys(state.standings))state.standings[league]=state.standings[league].filter(r=>r.clubId!==id);scheduleSave();renderView();toast('Klub dan pemainnya dihapus.')}
+
+  document.addEventListener('click',e=>{
+    const close=e.target.closest('[data-close-modal]');if(close&&(!e.target.closest('.modal-card')||e.target.matches('[data-close-modal]')))closeModal();
+    const v=e.target.closest('[data-view]');if(v)navigate(v.dataset.view);
+    const pRow=e.target.closest('[data-player-id]');if(pRow&&!e.target.closest('[data-negotiate],[data-scout],[data-admin-edit]')){const p=playerById(pRow.dataset.playerId);if(p)showPlayer(p)}
+    const neg=e.target.closest('[data-negotiate]');if(neg){const p=playerById(neg.dataset.negotiate);if(p)openNegotiation(p)}
+    const scout=e.target.closest('[data-scout]');if(scout){const p=playerById(scout.dataset.scout);if(p)scoutPlayer(p)}
+    const edit=e.target.closest('[data-admin-edit]');if(edit){const p=playerById(edit.dataset.adminEdit);if(p){closeModal();openPlayerEditor(p)}}
+    const del=e.target.closest('[data-delete-player]');if(del)deletePlayer(del.dataset.deletePlayer);
+    const editClub=e.target.closest('[data-edit-club]');if(editClub)openClubEditor(clubById(editClub.dataset.editClub));
+    const delClub=e.target.closest('[data-delete-club]');if(delClub)deleteClub(delClub.dataset.deleteClub);
+    const page=e.target.closest('[data-page-type]');if(page&&!page.disabled){const num=Number(page.dataset.page),type=page.dataset.pageType;if(type==='squad')ui.squadPage=num;if(type==='transfer')ui.transferPage=num;if(type==='scout')ui.scoutPage=num;if(type==='admin')ui.adminPage=num;renderView()}
+    const tab=e.target.closest('[data-admin-tab]');if(tab){ui.adminTab=tab.dataset.adminTab;renderView()}
+    const league=e.target.closest('[data-league-tab]');if(league){state.competitionTab=league.dataset.leagueTab;renderView()}
+    const saveSlot=e.target.closest('[data-save-slot]');if(saveSlot){activeSlot=Number(saveSlot.dataset.saveSlot);saveNow(true);renderView()}
+    const load=e.target.closest('[data-load-slot]');if(load){const s=loadSlot(Number(load.dataset.loadSlot));if(s){state=s;activeSlot=Number(load.dataset.loadSlot);migrateState();saveNow();navigate('dashboard');toast(`Slot ${activeSlot} dimuat.`)}}
+    const delSlot=e.target.closest('[data-delete-slot]');if(delSlot){const slot=Number(delSlot.dataset.deleteSlot);if(confirm(`Hapus save slot ${slot}?`)){localStorage.removeItem(STORAGE_PREFIX+slot);if(slot===activeSlot){state=createInitialState();state.hasOnboarded=true;saveNow()}renderView();toast(`Slot ${slot} dihapus.`)}}
   });
-  const staffs=[];
-  clubs.forEach(c=>STAFF_ROLES.slice(0,c.league==='Liga 1'?18:8).forEach(role=>staffs.push(makeStaff(c.id,role,c.reputation))));
-  for(let i=0;i<45;i++) staffs.push(makeStaff(null,pick(STAFF_ROLES),rand(48,92)));
-  const liga1=clubs.filter(c=>c.league==='Liga 1');
-  const fixtures=roundRobin(liga1.map(c=>c.id));
-  const tables={
-    'Liga 1':createTable(liga1),
-    'Premier League':createTable(clubs.filter(c=>c.league==='Premier League')),
-    'La Liga':createTable(clubs.filter(c=>c.league==='La Liga'))
-  };
-  return {
-    version:VERSION,createdAt:new Date().toISOString(),manager:{name:'Muhamad Fauzan Al Farikhi',clubId:'persija',difficulty:'Realistis',reputation:55},
-    season:'2025/2026',week:1,date:'2025-07-07',clubs,players,staffs,fixtures,tables,
-    tactics:{formation:'4-3-3',mentality:'Seimbang',tempo:'Normal',pressing:'Sedang',width:'Normal',line:'Normal',lineup:[],bench:[]},
-    scoutingReports:[],transactions:[{id:uid('tx'),date:'2025-07-01',type:'income',category:'Sponsor utama',amount:clubs.find(c=>c.id==='persija').sponsorIncome,note:'Pembayaran awal musim'}],
-    news:[{id:uid('n'),week:1,title:'Musim baru dimulai',body:'Klub memulai persiapan musim 2025/2026. Bursa transfer telah dibuka.'},{id:uid('n'),week:1,title:'Wonderkid Indonesia di Madrid',body:'M. Fauzan A.F, penyerang 16 tahun dengan nomor 7, masuk database Real Madrid.'}],
-    inbox:[],settings:{sound:true,autosave:true,matchDuration:60},lastUserMatchWeek:0
-  };
-}
 
-let state = loadState();
-let route='dashboard';
-let deferredInstall=null;
-let matchRuntime=null;
+  $('#menuBtn').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
+  $('#saveNowBtn').addEventListener('click',()=>saveNow(true));
+  $('#advanceWeekBtn').addEventListener('click',advanceWeek);
+  $('#soundBtn').addEventListener('click',()=>{state.sound=!state.sound;updateShell();scheduleSave();playSound('click')});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
-function loadState(){
-  try { const raw=storage.getItem(APP_KEY); if(raw){const s=JSON.parse(raw); if(s.version) return s;} } catch(e){console.warn(e);}
-  return buildInitialState();
-}
-function saveState(show=false){ storage.setItem(APP_KEY,JSON.stringify(state)); if(show) toast('Autosave tersimpan. Server imajinasi aman.'); }
-function club(id){ return state.clubs.find(c=>c.id===id); }
-function player(id){ return state.players.find(p=>p.id===id); }
-function managerClub(){ return club(state.manager.clubId); }
-function clubPlayers(id=state.manager.clubId){ return state.players.filter(p=>p.clubId===id); }
-function currentTable(league='Liga 1'){
-  return state.tables[league].slice().sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf||club(a.clubId).name.localeCompare(club(b.clubId).name));
-}
-function nextFixture(){ return state.fixtures.find(f=>f.week>=state.week&&!f.played&&(f.homeId===state.manager.clubId||f.awayId===state.manager.clubId)); }
-function potentialLabel(p){
-  if(!p.scouted && p.clubId!==state.manager.clubId) return 'Belum di-scout';
-  const gap=p.potential-p.ovr;
-  if(p.potential>=94) return 'Potensi sangat tinggi';
-  if(p.potential>=88) return 'Calon pemain bintang';
-  if(gap>=12) return 'Potensi tinggi';
-  if(gap>=6) return 'Potensi biasa';
-  if(gap>=2) return 'Potensi rendah';
-  return 'Tidak punya potensi besar';
-}
-function starText(stars){ return '★'.repeat(Math.floor(stars))+(stars%1?'½':''); }
-function toast(msg){ const el=$('#toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),2600); }
-function modal(title,body,actions=''){
-  $('#modal-root').innerHTML=`<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>${title}</h3><button data-close-modal class="ghost">✕</button></div>${body}${actions?`<div class="toolbar" style="justify-content:flex-end;margin-top:16px">${actions}</div>`:''}</div></div>`;
-  $('[data-close-modal]').onclick=closeModal; $('.modal-backdrop').onclick=e=>{if(e.target.classList.contains('modal-backdrop'))closeModal();};
-}
-function closeModal(){ $('#modal-root').innerHTML=''; }
-function nav(to){ route=to; $$('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.route===to)); render(); window.scrollTo({top:0,behavior:'smooth'}); }
-function pageHead(title,sub,actions=''){ return `<div class="page-head"><div><h2>${title}</h2><p>${sub}</p></div><div class="toolbar">${actions}</div></div>`; }
-function playerAvatar(p){ return `<div class="avatar">${p.imageUrl?`<img src="${p.imageUrl}" alt="" onerror="this.parentNode.textContent='${initials(p.name)}'">`:initials(p.name)}</div>`; }
-function render(){
-  $('#club-subtitle').textContent=`${managerClub()?.name||'Tanpa Klub'} · Minggu ${state.week} · ${formatDate(state.date)}`;
-  const app=$('#app');
-  const pages={dashboard:renderDashboard,squad:renderSquad,tactics:renderTactics,match:renderMatch,transfer:renderTransfer,scouting:renderScouting,staff:renderStaff,finance:renderFinance,competitions:renderCompetitions,admin:renderAdmin,save:renderSave};
-  app.innerHTML=(pages[route]||renderDashboard)(); bindPage();
-}
-
-function renderDashboard(){
-  const c=managerClub(),players=clubPlayers(),table=currentTable(c.league),pos=table.findIndex(r=>r.clubId===c.id)+1,fx=nextFixture();
-  const wages=players.reduce((a,p)=>a+p.wage,0)+state.staffs.filter(s=>s.clubId===c.id).reduce((a,s)=>a+s.salary,0);
-  const avg=players.length?players.reduce((a,p)=>a+p.ovr,0)/players.length:0;
-  const news=state.news.slice(-6).reverse();
-  return `${pageHead('Dashboard Manajer',`Selamat datang, ${state.manager.name}. Jangan beli 14 striker lalu bingung pertahanan bocor.`,`<button data-action="new-career" class="ghost">Ganti Klub</button>`)}
-  <div class="grid grid-4">
-    <div class="card stat-card"><span>Posisi Liga</span><strong>#${pos||'-'}</strong><span>${c.league}</span></div>
-    <div class="card stat-card"><span>Saldo Klub</span><strong>${shortMoney(c.balance)}</strong><span>Budget transfer ${shortMoney(c.transferBudget)}</span></div>
-    <div class="card stat-card"><span>Overall Skuad</span><strong>${avg.toFixed(1)}</strong><span>${players.length} pemain</span></div>
-    <div class="card stat-card"><span>Gaji Bulanan</span><strong>${shortMoney(wages)}</strong><span>Batas ${shortMoney(c.wageBudget)}</span></div>
-  </div>
-  <div class="grid grid-2" style="margin-top:14px">
-    <section class="card"><h3>Pertandingan Berikutnya</h3>${fx?fixtureCard(fx):'<div class="empty">Belum ada pertandingan.</div>'}</section>
-    <section class="card"><h3>Kondisi Skuad</h3><div class="kpi-row">
-      <div class="kpi"><strong>${Math.round(players.reduce((a,p)=>a+p.stamina,0)/players.length)||0}</strong><small>Stamina</small></div>
-      <div class="kpi"><strong>${Math.round(players.reduce((a,p)=>a+p.morale,0)/players.length)||0}</strong><small>Moral</small></div>
-      <div class="kpi"><strong>${players.filter(p=>p.injury).length}</strong><small>Cedera</small></div>
-      <div class="kpi"><strong>${players.filter(p=>p.age<=21).length}</strong><small>U-21</small></div>
-      <div class="kpi"><strong>${players.filter(p=>p.ovr>=75).length}</strong><small>Elite</small></div>
-    </div><div style="margin-top:15px"><span class="muted tiny">Kualitas fasilitas latihan</span><div class="progress"><i style="width:${c.facilities.training*10}%"></i></div></div></section>
-  </div>
-  <div class="grid grid-2" style="margin-top:14px">
-    <section class="card"><h3>Berita Klub & Dunia</h3><div class="list">${news.map(n=>`<article class="list-row news-item"><div><strong>${n.title}</strong><div class="muted tiny">Minggu ${n.week}</div><p class="muted" style="margin:5px 0 0">${n.body}</p></div></article>`).join('')}</div></section>
-    <section class="card"><h3>5 Besar ${c.league}</h3>${tableMini(table.slice(0,5))}</section>
-  </div>`;
-}
-function fixtureCard(f){
-  const h=club(f.homeId),a=club(f.awayId); return `<div class="scoreboard"><div><div class="avatar" style="margin:auto">${h.short.slice(0,2)}</div><strong>${h.name}</strong></div><div><div class="score">${f.played?`${f.homeGoals}-${f.awayGoals}`:'VS'}</div><span class="badge">Minggu ${f.week}</span></div><div><div class="avatar" style="margin:auto">${a.short.slice(0,2)}</div><strong>${a.name}</strong></div></div><div class="toolbar" style="justify-content:center"><button class="primary" data-route-jump="match">Buka Match Centre</button></div>`;
-}
-function tableMini(rows){ return `<div class="table-wrap"><table style="min-width:420px"><thead><tr><th>#</th><th>Klub</th><th>P</th><th>GD</th><th>Pts</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${club(r.clubId).name}</td><td>${r.p}</td><td>${r.gd}</td><td><strong>${r.pts}</strong></td></tr>`).join('')}</tbody></table></div>`; }
-
-function renderSquad(){
-  const ps=clubPlayers().sort((a,b)=>positionOrder.indexOf(a.pos)-positionOrder.indexOf(b.pos)||b.ovr-a.ovr);
-  return `${pageHead('Skuad Utama',`${ps.length} pemain · klik pemain untuk statistik detail.`,`<input id="squad-search" placeholder="Cari pemain..."><select id="squad-pos"><option value="">Semua posisi</option>${positionOrder.map(x=>`<option>${x}</option>`).join('')}</select>`)}
-  <section class="card"><div class="table-wrap"><table id="squad-table"><thead><tr><th>Pemain</th><th>Pos</th><th>Usia</th><th>OVR</th><th>Potensi</th><th>Stamina</th><th>Form</th><th>Gaji</th><th>Aksi</th></tr></thead><tbody>${ps.map(p=>playerRow(p)).join('')}</tbody></table></div></section>`;
-}
-function playerRow(p){ return `<tr data-player-row data-name="${p.name.toLowerCase()}" data-pos="${p.pos}"><td><div class="player-main">${playerAvatar(p)}<div><strong>${p.name}</strong><small>#${p.number} · ${p.nation}</small></div></div></td><td><span class="badge">${p.pos}</span></td><td>${p.age}</td><td><span class="overall">${p.ovr}</span></td><td>${potentialLabel(p)}</td><td><div style="min-width:90px"><div class="progress"><i style="width:${p.stamina}%"></i></div><small>${p.stamina}</small></div></td><td>${p.form}</td><td>${shortMoney(p.wage)}</td><td><button class="small" data-player-detail="${p.id}">Detail</button> <button class="small danger" data-sell-player="${p.id}">Jual</button></td></tr>`; }
-function showPlayerDetail(id){
-  const p=player(id),c=club(p.clubId); const attrs=Object.entries(p.attributes).sort((a,b)=>b[1]-a[1]);
-  modal(p.name,`<div class="grid grid-2"><div class="card"><div class="player-main">${playerAvatar(p)}<div><strong style="font-size:20px">${p.displayName}</strong><div class="muted">${c?.name||'Free Agent'} · ${p.pos}${p.secondary.length?' / '+p.secondary.join(', '):''}</div></div><span class="overall">${p.ovr}</span></div><div class="list" style="margin-top:14px"><div class="list-row"><span>Usia</span><strong>${p.age}</strong></div><div class="list-row"><span>Kaki</span><strong>${p.foot}</strong></div><div class="list-row"><span>Tinggi / Berat</span><strong>${p.height} cm / ${p.weight} kg</strong></div><div class="list-row"><span>Nilai</span><strong>${money(p.value)}</strong></div><div class="list-row"><span>Potensi</span><strong>${potentialLabel(p)}</strong></div><div class="list-row"><span>Trait</span><strong>${p.traits.join(', ')}</strong></div></div></div><div class="card"><h3>Atribut</h3><div class="grid grid-2">${attrs.map(([k,v])=>`<div><div style="display:flex;justify-content:space-between"><span class="tiny muted">${k}</span><strong>${v}</strong></div><div class="progress"><i style="width:${v}%"></i></div></div>`).join('')}</div></div></div>`);
-}
-
-function ensureLineup(){
-  const ps=clubPlayers().filter(p=>!p.injury).sort((a,b)=>b.ovr-a.ovr);
-  if(state.tactics.lineup.length!==11||state.tactics.lineup.some(id=>!ps.some(p=>p.id===id))){ state.tactics.lineup=ps.slice(0,11).map(p=>p.id); state.tactics.bench=ps.slice(11,20).map(p=>p.id); saveState(); }
-}
-function renderTactics(){
-  ensureLineup(); const line=state.tactics.lineup.map(player).filter(Boolean); const slots=[[line[0]],[line[1],line[2],line[3],line[4]],[line[5],line[6],line[7]],[line[8],line[9]],[line[10]]];
-  return `${pageHead('Taktik & Formasi','Drag pemain untuk menukar posisi. Secara ilmiah lebih berguna daripada teriak “ayo fokus”.',`<select id="mentality"><option>${state.tactics.mentality}</option><option>Defensif</option><option>Seimbang</option><option>Menyerang</option></select><select id="tempo"><option>${state.tactics.tempo}</option><option>Lambat</option><option>Normal</option><option>Cepat</option></select>`)}
-  <div class="grid grid-2"><section class="pitch"><div class="pitch-slots">${slots.map((row,ri)=>`<div class="pitch-line">${row.map(p=>pitchPlayer(p)).join('')}</div>`).join('')}</div></section><section><div class="card"><h3>Instruksi Tim</h3><div class="form-grid"><label>Pressing<select id="pressing"><option>${state.tactics.pressing}</option><option>Rendah</option><option>Sedang</option><option>Tinggi</option></select></label><label>Lebar<select id="width"><option>${state.tactics.width}</option><option>Sempit</option><option>Normal</option><option>Lebar</option></select></label><label>Garis Pertahanan<select id="def-line"><option>${state.tactics.line}</option><option>Rendah</option><option>Normal</option><option>Tinggi</option></select></label><label>Formasi<select id="formation"><option>4-3-3</option><option>4-2-3-1</option><option>4-4-2</option></select></label></div></div><div class="card" style="margin-top:14px"><h3>Cadangan</h3><div class="bench">${state.tactics.bench.map(id=>pitchPlayer(player(id))).join('')}</div></div><div class="card" style="margin-top:14px"><h3>Ringkasan Kekuatan</h3>${tacticSummary(line)}</div></section></div>`;
-}
-function pitchPlayer(p){ if(!p)return''; return `<div class="pitch-player" draggable="true" data-drag-player="${p.id}"><div class="shirt">${p.number}</div><small>${p.name}</small><b>${p.pos} · ${p.ovr}</b></div>`; }
-function tacticSummary(line){ const avg=k=>Math.round(line.reduce((a,p)=>a+(p.attributes[k]||p.ovr),0)/line.length); return `<div class="list"><div class="list-row"><span>Serangan</span><strong>${avg('shooting')}</strong></div><div class="list-row"><span>Kreativitas</span><strong>${avg('passing')}</strong></div><div class="list-row"><span>Pertahanan</span><strong>${avg('tackling')}</strong></div><div class="list-row"><span>Stamina</span><strong>${Math.round(line.reduce((a,p)=>a+p.stamina,0)/line.length)}</strong></div></div>`; }
-
-function renderMatch(){
-  const fx=nextFixture(); if(!fx) return `${pageHead('Match Centre','Tidak ada pertandingan berikutnya.')}<div class="card empty">Jadwal habis atau seluruh sepak bola sedang libur.</div>`;
-  const h=club(fx.homeId),a=club(fx.awayId); const active=matchRuntime&&matchRuntime.fixtureId===fx.id;
-  return `${pageHead('Match Centre',`Liga 1 · Minggu ${fx.week} · durasi bisa diatur`,`<select id="match-duration"><option value="30">30 detik</option><option value="60" ${state.settings.matchDuration===60?'selected':''}>1 menit</option><option value="180">3 menit</option><option value="300">5 menit</option></select>`)}
-  <section class="card"><div class="scoreboard"><div><div class="avatar" style="margin:auto">${h.short.slice(0,2)}</div><strong>${h.name}</strong></div><div><div id="live-score" class="score">${active?`${matchRuntime.homeGoals}-${matchRuntime.awayGoals}`:'0-0'}</div><span id="match-minute" class="badge">${active?matchRuntime.minute:0}'</span></div><div><div class="avatar" style="margin:auto">${a.short.slice(0,2)}</div><strong>${a.name}</strong></div></div><div class="toolbar" style="justify-content:center"><button id="start-match" class="primary" ${active?'disabled':''}>Mulai Pertandingan</button><button id="pause-match" class="ghost" ${active?'':'disabled'}>${active&&matchRuntime.paused?'Lanjutkan':'Pause'}</button><button data-route-jump="tactics" class="ghost">Ubah Taktik</button><select id="match-speed"><option value="1">1x</option><option value="2">2x</option><option value="4">4x</option></select></div></section>
-  <div class="grid grid-3" style="margin-top:14px"><div class="card stat-card"><span>Penguasaan</span><strong id="match-possession">50 - 50</strong></div><div class="card stat-card"><span>Tembakan</span><strong id="match-shots">0 - 0</strong></div><div class="card stat-card"><span>xG</span><strong id="match-xg">0.00 - 0.00</strong></div></div>
-  <section class="card" style="margin-top:14px"><h3>Komentar Langsung</h3><div id="match-console" class="match-console">${active?matchRuntime.logs.map(x=>`<div class="commentary">${x}</div>`).join(''):'<div class="commentary"><strong>0\'</strong> Kedua tim bersiap memasuki lapangan.</div>'}</div></section>`;
-}
-function teamPower(clubId){ const ps=state.players.filter(p=>p.clubId===clubId).sort((a,b)=>b.ovr-a.ovr).slice(0,11); return ps.reduce((a,p)=>a+p.ovr*(p.stamina/100)*(p.form/100),0)/(ps.length||1); }
-function startMatch(){
-  const fx=nextFixture(); if(!fx||matchRuntime)return; ensureLineup(); const dur=Number($('#match-duration').value)||60; state.settings.matchDuration=dur;
-  matchRuntime={fixtureId:fx.id,minute:0,homeGoals:0,awayGoals:0,homeShots:0,awayShots:0,homeXg:0,awayXg:0,possession:50,paused:false,speed:1,logs:[`<strong>0'</strong> Wasit meniup peluit. Pertandingan dimulai.`],duration:dur,timer:null};
-  runMatchTimer(); render();
-}
-function runMatchTimer(){
-  clearInterval(matchRuntime?.timer); if(!matchRuntime)return;
-  const tickMs=Math.max(120,(matchRuntime.duration*1000/90)/matchRuntime.speed);
-  matchRuntime.timer=setInterval(()=>{ if(!matchRuntime||matchRuntime.paused)return; simulateMinute(); },tickMs);
-}
-function simulateMinute(){
-  const m=matchRuntime,fx=state.fixtures.find(f=>f.id===m.fixtureId); if(!m||!fx)return;
-  m.minute++;
-  const hp=teamPower(fx.homeId)+(fx.homeId===state.manager.clubId?tacticModifier():0)+3; const ap=teamPower(fx.awayId)+(fx.awayId===state.manager.clubId?tacticModifier():0);
-  m.possession=clamp(Math.round(50+(hp-ap)*1.15+rand(-7,7)),31,69);
-  const eventChance=.20;
-  if(Math.random()<eventChance){
-    const homeAttack=Math.random()<(hp/(hp+ap)); const atkId=homeAttack?fx.homeId:fx.awayId; const defId=homeAttack?fx.awayId:fx.homeId; const attackers=state.players.filter(p=>p.clubId===atkId&&['ST','CF','LW','RW','AM','CM'].includes(p.pos)); const shooter=pick(attackers.length?attackers:state.players.filter(p=>p.clubId===atkId));
-    const xg=Math.max(.03,Math.min(.7,(shooter?.attributes.finishing||65)/180+Math.random()*.18));
-    if(homeAttack){m.homeShots++;m.homeXg+=xg;} else {m.awayShots++;m.awayXg+=xg;}
-    const goal=Math.random()<xg*.48;
-    if(goal){ if(homeAttack)m.homeGoals++;else m.awayGoals++; if(shooter){shooter.stats.goals++; shooter.morale=clamp(shooter.morale+2,0,100);} logMatch(`<strong>${m.minute}' GOL!</strong> ${shooter?.name||'Pemain'} menaklukkan pertahanan ${club(defId).name}.`); playSound('goal'); }
-    else logMatch(`<strong>${m.minute}'</strong> ${shooter?.name||'Pemain'} melepaskan tembakan, tetapi peluang terbuang.`);
-  } else if(Math.random()<.05){ logMatch(`<strong>${m.minute}'</strong> Kartu kuning setelah tekel terlambat di tengah lapangan.`); playSound('card'); }
-  else if([15,30,45,60,75].includes(m.minute)) logMatch(`<strong>${m.minute}'</strong> Tempo pertandingan ${m.possession>55?'dikuasai tuan rumah':m.possession<45?'condong ke tim tamu':'masih berimbang'}.`);
-  updateMatchUI();
-  if(m.minute>=90) finishMatch();
-}
-function tacticModifier(){ let v=0; if(state.tactics.mentality==='Menyerang')v+=2;if(state.tactics.pressing==='Tinggi')v+=1;if(state.tactics.tempo==='Cepat')v+=1; return v; }
-function logMatch(text){ matchRuntime.logs.push(text); const el=$('#match-console'); if(el){el.insertAdjacentHTML('beforeend',`<div class="commentary">${text}</div>`);el.scrollTop=el.scrollHeight;} }
-function updateMatchUI(){ const m=matchRuntime;if(!m)return; if($('#live-score'))$('#live-score').textContent=`${m.homeGoals}-${m.awayGoals}`;if($('#match-minute'))$('#match-minute').textContent=`${m.minute}'`;if($('#match-possession'))$('#match-possession').textContent=`${m.possession} - ${100-m.possession}`;if($('#match-shots'))$('#match-shots').textContent=`${m.homeShots} - ${m.awayShots}`;if($('#match-xg'))$('#match-xg').textContent=`${m.homeXg.toFixed(2)} - ${m.awayXg.toFixed(2)}`; }
-function finishMatch(){
-  const m=matchRuntime,fx=state.fixtures.find(f=>f.id===m.fixtureId); clearInterval(m.timer); fx.played=true;fx.homeGoals=m.homeGoals;fx.awayGoals=m.awayGoals; applyResult(fx); state.lastUserMatchWeek=state.week;
-  state.news.push({id:uid('n'),week:state.week,title:`${club(fx.homeId).short} ${m.homeGoals}-${m.awayGoals} ${club(fx.awayId).short}`,body:`Pertandingan berakhir dengan xG ${m.homeXg.toFixed(2)}-${m.awayXg.toFixed(2)}.`});
-  clubPlayers().forEach(p=>{p.stamina=clamp(p.stamina-rand(3,12),15,100);p.stats.apps++;}); saveState(); logMatch(`<strong>90' SELESAI.</strong> Skor akhir ${m.homeGoals}-${m.awayGoals}.`); playSound('end'); setTimeout(()=>{matchRuntime=null;render();},1800);
-}
-function playSound(type){
-  if(!state.settings.sound)return; try{ const C=window.AudioContext||window.webkitAudioContext;const ctx=new C();const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.frequency.value=type==='goal'?780:type==='card'?260:440;gain.gain.setValueAtTime(.12,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.35);osc.start();osc.stop(ctx.currentTime+.36);}catch(e){}
-}
-function applyResult(fx){
-  const table=state.tables[club(fx.homeId).league]; if(!table)return; const h=table.find(r=>r.clubId===fx.homeId),a=table.find(r=>r.clubId===fx.awayId); if(!h||!a)return;
-  h.p++;a.p++;h.gf+=fx.homeGoals;h.ga+=fx.awayGoals;a.gf+=fx.awayGoals;a.ga+=fx.homeGoals;h.gd=h.gf-h.ga;a.gd=a.gf-a.ga;
-  if(fx.homeGoals>fx.awayGoals){h.w++;a.l++;h.pts+=3;}else if(fx.homeGoals<fx.awayGoals){a.w++;h.l++;a.pts+=3;}else{h.d++;a.d++;h.pts++;a.pts++;}
-}
-
-function renderTransfer(){
-  const market=state.players.filter(p=>p.clubId!==state.manager.clubId).sort((a,b)=>b.value-a.value).slice(0,180);
-  return `${pageHead('Bursa Transfer','Negosiasi dipengaruhi nilai, reputasi klub, kontrak, dan sedikit drama agen. Manusia profesional tetap manusia.',`<input id="transfer-search" placeholder="Cari pemain..."><select id="transfer-pos"><option value="">Semua posisi</option>${positionOrder.map(x=>`<option>${x}</option>`).join('')}</select>`)}
-  <div class="grid grid-3"><div class="card stat-card"><span>Budget Transfer</span><strong>${shortMoney(managerClub().transferBudget)}</strong></div><div class="card stat-card"><span>Reputasi Klub</span><strong>${managerClub().reputation}</strong></div><div class="card stat-card"><span>Scout Reports</span><strong>${state.scoutingReports.length}</strong></div></div>
-  <section class="card" style="margin-top:14px"><div class="table-wrap"><table id="transfer-table"><thead><tr><th>Pemain</th><th>Klub</th><th>Pos</th><th>Usia</th><th>OVR</th><th>Potensi</th><th>Nilai</th><th>Aksi</th></tr></thead><tbody>${market.map(p=>`<tr data-transfer-row data-name="${p.name.toLowerCase()}" data-pos="${p.pos}"><td>${p.name}</td><td>${club(p.clubId)?.name||'Free Agent'}</td><td>${p.pos}</td><td>${p.age}</td><td>${p.scouted?`<strong>${p.ovr}</strong>`:'?'}</td><td>${potentialLabel(p)}</td><td>${money(p.value)}</td><td><button class="small" data-player-detail="${p.id}">Detail</button> <button class="small primary" data-buy-player="${p.id}">Ajukan Tawaran</button></td></tr>`).join('')}</tbody></table></div></section>`;
-}
-function offerPlayer(id){
-  const p=player(id),seller=club(p.clubId),buyer=managerClub(); const ask=Math.round(p.value*(1.05+Math.random()*.35));
-  modal(`Negosiasi ${p.name}`,`<p>${seller.name} meminta sekitar <strong>${money(ask)}</strong>. Budget lu <strong>${money(buyer.transferBudget)}</strong>.</p><div class="form-grid"><label>Nilai tawaran<input id="offer-amount" type="number" value="${ask}"></label><label>Gaji bulanan<input id="offer-wage" type="number" value="${Math.round(p.wage*1.15)}"></label><label>Durasi kontrak<select id="offer-years"><option>3</option><option selected>4</option><option>5</option></select></label><label>Bonus tanda tangan<input id="signing-bonus" type="number" value="${Math.round(p.wage*2)}"></label></div>`,`<button data-close-modal class="ghost">Batal</button><button id="confirm-buy" class="primary">Kirim Tawaran</button>`);
-  $('#confirm-buy').onclick=()=>{
-    const amount=Number($('#offer-amount').value),wage=Number($('#offer-wage').value),bonus=Number($('#signing-bonus').value); const chance=amount/ask*.65+buyer.reputation/(seller.reputation+buyer.reputation)*.35;
-    if(amount+bonus>buyer.transferBudget)return toast('Budget transfer nggak cukup. Kalkulator lu lagi cuti?');
-    if(Math.random()>chance)return toast('Tawaran ditolak. Klub penjual masih waras.');
-    buyer.transferBudget-=amount+bonus;buyer.balance-=amount+bonus;seller.balance+=amount;p.clubId=buyer.id;p.wage=wage;p.contractUntil=`${2025+Number($('#offer-years').value)}-06-30`;p.scouted=true;
-    state.transactions.push({id:uid('tx'),date:state.date,type:'expense',category:'Transfer pemain',amount:amount+bonus,note:`Membeli ${p.name}`});state.news.push({id:uid('n'),week:state.week,title:`${p.name} resmi bergabung`,body:`Transfer dari ${seller.name} senilai ${money(amount)}.`});closeModal();saveState();render();toast('Transfer berhasil. Agen langsung senyum, tentu saja.');
-  };
-}
-function sellPlayer(id){
-  const p=player(id); const offer=Math.round(p.value*(.75+Math.random()*.35));
-  modal(`Jual ${p.name}`,`<p>Ada minat senilai <strong>${money(offer)}</strong>. Menjual pemain memang mudah sampai dia cetak gol lawan lu minggu depan.</p>`,`<button data-close-modal class="ghost">Tolak</button><button id="confirm-sell" class="danger">Terima Tawaran</button>`);
-  $('#confirm-sell').onclick=()=>{const buyers=state.clubs.filter(c=>c.id!==state.manager.clubId&&c.reputation>=managerClub().reputation-15);const b=pick(buyers);managerClub().balance+=offer;managerClub().transferBudget+=Math.round(offer*.85);p.clubId=b.id;state.tactics.lineup=state.tactics.lineup.filter(x=>x!==p.id);state.tactics.bench=state.tactics.bench.filter(x=>x!==p.id);state.transactions.push({id:uid('tx'),date:state.date,type:'income',category:'Penjualan pemain',amount:offer,note:`Menjual ${p.name}`});closeModal();saveState();render();toast(`${p.name} dijual ke ${b.name}.`);};
-}
-
-function renderScouting(){
-  const scouts=state.staffs.filter(s=>s.clubId===state.manager.clubId&&s.role.toLowerCase().includes('scout')); const quality=scouts.length?Math.round(scouts.reduce((a,s)=>a+s.rating,0)/scouts.length):35;
-  const targets=state.players.filter(p=>p.clubId!==state.manager.clubId).sort((a,b)=>(a.scouted?1:0)-(b.scouted?1:0)||b.potential-a.potential).slice(0,100);
-  return `${pageHead('Scouting Centre',`Kualitas jaringan ${quality}/100. Potensi pemain baru terbuka setelah laporan selesai.`,`<span class="badge">Biaya per laporan ${money(150000000)}</span>`)}
-  <div class="grid grid-3"><div class="card stat-card"><span>Jumlah Scout</span><strong>${scouts.length}</strong></div><div class="card stat-card"><span>Kualitas Jaringan</span><strong>${quality}</strong></div><div class="card stat-card"><span>Laporan Selesai</span><strong>${state.scoutingReports.length}</strong></div></div>
-  <section class="card" style="margin-top:14px"><div class="table-wrap"><table><thead><tr><th>Pemain</th><th>Klub</th><th>Pos</th><th>Usia</th><th>OVR</th><th>Potensi</th><th>Aksi</th></tr></thead><tbody>${targets.map(p=>`<tr><td>${p.name}</td><td>${club(p.clubId)?.short}</td><td>${p.pos}</td><td>${p.age}</td><td>${p.scouted?p.ovr:'?'}</td><td>${potentialLabel(p)}</td><td>${p.scouted?`<button class="small" data-player-detail="${p.id}">Lihat laporan</button>`:`<button class="small primary" data-scout="${p.id}">Scout</button>`}</td></tr>`).join('')}</tbody></table></div></section>`;
-}
-function scoutPlayer(id){ const cost=150000000,c=managerClub();if(c.balance<cost)return toast('Saldo klub kurang. Scout nggak dibayar pakai exposure.');const p=player(id);c.balance-=cost;p.scouted=true;state.scoutingReports.push({id:uid('sr'),playerId:id,week:state.week,confidence:rand(70,99)});state.transactions.push({id:uid('tx'),date:state.date,type:'expense',category:'Scouting',amount:cost,note:`Laporan ${p.name}`});saveState();render();toast(`Laporan ${p.name} selesai: ${potentialLabel(p)}.`); }
-
-function renderStaff(){
-  const own=state.staffs.filter(s=>s.clubId===state.manager.clubId).sort((a,b)=>b.stars-a.stars);const free=state.staffs.filter(s=>!s.clubId).sort((a,b)=>b.stars-a.stars).slice(0,80);
-  return `${pageHead('Staf Klub','Bintang lebih tinggi berarti lebih bagus, lebih mahal, dan lebih banyak gaya saat negosiasi.',`<input id="staff-search" placeholder="Cari role atau nama...">`)}
-  <div class="grid grid-3"><div class="card stat-card"><span>Total Staf</span><strong>${own.length}</strong></div><div class="card stat-card"><span>Gaji Staf/Bulan</span><strong>${shortMoney(own.reduce((a,s)=>a+s.salary,0))}</strong></div><div class="card stat-card"><span>Rata-rata Bintang</span><strong>${(own.reduce((a,s)=>a+s.stars,0)/(own.length||1)).toFixed(1)}</strong></div></div>
-  <section class="card" style="margin-top:14px"><h3>Staf Aktif</h3><div class="table-wrap"><table><thead><tr><th>Nama</th><th>Peran</th><th>Bintang</th><th>Rating</th><th>Gaji</th><th>Aksi</th></tr></thead><tbody>${own.map(s=>staffRow(s,true)).join('')}</tbody></table></div></section>
-  <section class="card" style="margin-top:14px"><h3>Pasar Staf</h3><div class="table-wrap"><table id="staff-market"><thead><tr><th>Nama</th><th>Peran</th><th>Bintang</th><th>Rating</th><th>Gaji</th><th>Aksi</th></tr></thead><tbody>${free.map(s=>staffRow(s,false)).join('')}</tbody></table></div></section>`;
-}
-function staffRow(s,own){return `<tr data-staff-row data-name="${(s.name+' '+s.role).toLowerCase()}"><td>${s.name}</td><td>${s.role}</td><td><span class="stars">${starText(s.stars)}</span></td><td>${s.rating}</td><td>${money(s.salary)}</td><td>${own?`<button class="small danger" data-fire-staff="${s.id}">Putus Kontrak</button>`:`<button class="small primary" data-hire-staff="${s.id}">Rekrut</button>`}</td></tr>`;}
-function hireStaff(id){const s=state.staffs.find(x=>x.id===id),fee=s.salary*3,c=managerClub();if(c.balance<fee)return toast('Kas klub kurang buat tanda tangan staf.');if(state.staffs.some(x=>x.clubId===c.id&&x.role===s.role))return toast(`Posisi ${s.role} sudah terisi. Pecat dulu atau jangan koleksi staf kayak kartu Pokémon.`);c.balance-=fee;s.clubId=c.id;state.transactions.push({id:uid('tx'),date:state.date,type:'expense',category:'Rekrut staf',amount:fee,note:s.name});saveState();render();toast(`${s.name} resmi jadi ${s.role}.`);}
-function fireStaff(id){const s=state.staffs.find(x=>x.id===id),fee=s.salary*2,c=managerClub();if(c.balance<fee)return toast('Pesangon nggak cukup. Kapitalisme pun punya aturan.');c.balance-=fee;s.clubId=null;state.transactions.push({id:uid('tx'),date:state.date,type:'expense',category:'Pesangon staf',amount:fee,note:s.name});saveState();render();}
-
-function renderFinance(){
-  const c=managerClub(),tx=state.transactions.filter(t=>t.note?.includes(c.name)||true).slice(-30).reverse();const income=tx.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0),expense=tx.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);const months=['Jul','Agu','Sep','Okt','Nov','Des'];
-  return `${pageHead('Keuangan Klub','Pendapatan dan pengeluaran memakai rupiah. Angka besar karena sepak bola ternyata bukan arisan RT.',`<button data-action="negotiate-sponsor" class="primary">Cari Sponsor</button>`)}
-  <div class="grid grid-4"><div class="card stat-card"><span>Saldo</span><strong>${shortMoney(c.balance)}</strong></div><div class="card stat-card"><span>Transfer Budget</span><strong>${shortMoney(c.transferBudget)}</strong></div><div class="card stat-card"><span>Total Pemasukan</span><strong class="metric-good">${shortMoney(income)}</strong></div><div class="card stat-card"><span>Total Pengeluaran</span><strong class="metric-bad">${shortMoney(expense)}</strong></div></div>
-  <div class="grid grid-2" style="margin-top:14px"><section class="card"><h3>Proyeksi Pendapatan</h3><div class="finance-chart">${months.map((m,i)=>`<div class="finance-bar" style="height:${45+((c.reputation+i*7)%50)}%"><span>${m}</span></div>`).join('')}</div></section><section class="card"><h3>Sumber Ekonomi Klub</h3><div class="list"><div class="list-row"><span>Sponsor per musim</span><strong>${money(c.sponsorIncome)}</strong></div><div class="list-row"><span>Kapasitas stadion</span><strong>${num(c.capacity)}</strong></div><div class="list-row"><span>Basis suporter</span><strong>${num(c.fans)}</strong></div><div class="list-row"><span>Reputasi</span><strong>${c.reputation}/100</strong></div></div></section></div>
-  <section class="card" style="margin-top:14px"><h3>Transaksi Terbaru</h3><div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Catatan</th><th>Jenis</th><th>Jumlah</th></tr></thead><tbody>${tx.map(t=>`<tr><td>${formatDate(t.date)}</td><td>${t.category}</td><td>${t.note}</td><td><span class="badge ${t.type==='income'?'good':'bad'}">${t.type==='income'?'Masuk':'Keluar'}</span></td><td class="${t.type==='income'?'metric-good':'metric-bad'}">${t.type==='income'?'+':'-'}${money(t.amount)}</td></tr>`).join('')}</tbody></table></div></section>`;
-}
-function negotiateSponsor(){const staff=state.staffs.find(s=>s.clubId===state.manager.clubId&&(s.role==='Manajer Sponsor'||s.role==='Manajer Komersial'));const skill=staff?.attributes.commercial||35;const value=Math.round(managerClub().reputation*skill*15000000);modal('Negosiasi Sponsor',`<p>Manajer komersial menawarkan kontrak sponsor bernilai <strong>${money(value)}</strong> per musim.</p><p class="muted">Kualitas staf: ${staff?`${staff.name}, ${staff.stars} bintang`:'belum ada staf khusus, jadi CEO turun tangan sambil ngeluh'}.</p>`,`<button data-close-modal class="ghost">Nanti</button><button id="accept-sponsor" class="primary">Terima</button>`);$('#accept-sponsor').onclick=()=>{managerClub().sponsorIncome=value;managerClub().balance+=Math.round(value*.25);state.transactions.push({id:uid('tx'),date:state.date,type:'income',category:'Sponsor',amount:Math.round(value*.25),note:'Uang muka sponsor baru'});closeModal();saveState();render();};}
-
-function renderCompetitions(){
-  const league=renderCompetitions.active||'Liga 1',rows=currentTable(league);return `${pageHead('Kompetisi','Liga 1 aktif penuh. Inggris dan Spanyol disimulasikan mingguan.',`<span class="badge">Musim ${state.season}</span>`)}<div class="tabbar">${Object.keys(state.tables).map(l=>`<button data-league-tab="${l}" class="${l===league?'active':''}">${l}</button>`).join('')}</div><section class="card"><div class="table-wrap"><table><thead><tr><th>#</th><th>Klub</th><th>P</th><th>M</th><th>S</th><th>K</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${i+1}</td><td><strong>${club(r.clubId).name}</strong></td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gd}</td><td><strong>${r.pts}</strong></td></tr>`).join('')}</tbody></table></div></section>`;
-}
-
-function renderAdmin(){
-  const tab=renderAdmin.active||'players'; return `${pageHead('Admin Database','Lu penguasa database. Bisa edit, tambah, hapus, pindah klub, bahkan merusak keseimbangan dunia dengan penuh tanggung jawab.',`<button id="admin-add" class="primary">Tambah ${tab==='players'?'Pemain':tab==='clubs'?'Klub':'Staf'}</button>`)}
-  <div class="tabbar"><button data-admin-tab="players" class="${tab==='players'?'active':''}">Pemain</button><button data-admin-tab="clubs" class="${tab==='clubs'?'active':''}">Klub</button><button data-admin-tab="staff" class="${tab==='staff'?'active':''}">Staf</button></div>${tab==='players'?adminPlayers():tab==='clubs'?adminClubs():adminStaff()}`;
-}
-function adminPlayers(){return `<section class="card"><div class="toolbar"><input id="admin-search" placeholder="Cari pemain..."><span class="badge">${state.players.length} pemain</span></div><div class="table-wrap"><table id="admin-table"><thead><tr><th>Nama</th><th>Klub</th><th>Pos</th><th>Usia</th><th>OVR</th><th>POT</th><th>Nilai</th><th>Aksi</th></tr></thead><tbody>${state.players.slice().sort((a,b)=>b.ovr-a.ovr).map(p=>`<tr data-admin-row data-name="${p.name.toLowerCase()}"><td>${p.name}</td><td>${club(p.clubId)?.short||'FA'}</td><td>${p.pos}</td><td>${p.age}</td><td>${p.ovr}</td><td>${p.potential}</td><td>${shortMoney(p.value)}</td><td><button class="small" data-admin-edit-player="${p.id}">Edit</button> <button class="small danger" data-admin-delete-player="${p.id}">Hapus</button></td></tr>`).join('')}</tbody></table></div></section>`;}
-function adminClubs(){return `<section class="card"><div class="table-wrap"><table><thead><tr><th>Klub</th><th>Liga</th><th>Reputasi</th><th>Saldo</th><th>Stadion</th><th>Aksi</th></tr></thead><tbody>${state.clubs.map(c=>`<tr><td>${c.name}</td><td>${c.league}</td><td>${c.reputation}</td><td>${shortMoney(c.balance)}</td><td>${c.stadium}</td><td><button class="small" data-admin-edit-club="${c.id}">Edit</button> <button class="small danger" data-admin-delete-club="${c.id}">Hapus</button></td></tr>`).join('')}</tbody></table></div></section>`;}
-function adminStaff(){return `<section class="card"><div class="table-wrap"><table><thead><tr><th>Nama</th><th>Klub</th><th>Role</th><th>Rating</th><th>Bintang</th><th>Gaji</th><th>Aksi</th></tr></thead><tbody>${state.staffs.map(s=>`<tr><td>${s.name}</td><td>${club(s.clubId)?.short||'Free'}</td><td>${s.role}</td><td>${s.rating}</td><td>${s.stars}</td><td>${shortMoney(s.salary)}</td><td><button class="small" data-admin-edit-staff="${s.id}">Edit</button> <button class="small danger" data-admin-delete-staff="${s.id}">Hapus</button></td></tr>`).join('')}</tbody></table></div></section>`;}
-function playerForm(p={}){return `<div class="form-grid"><label>Nama<input id="f-name" value="${p.name||''}"></label><label>Klub<select id="f-club"><option value="">Free Agent</option>${state.clubs.map(c=>`<option value="${c.id}" ${p.clubId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></label><label>Negara<input id="f-nation" value="${p.nation||'Indonesia'}"></label><label>Posisi<select id="f-pos">${positionOrder.map(x=>`<option ${p.pos===x?'selected':''}>${x}</option>`).join('')}</select></label><label>Usia<input id="f-age" type="number" min="15" max="50" value="${p.age||18}"></label><label>Nomor<input id="f-number" type="number" min="1" max="99" value="${p.number||7}"></label><label>Overall<input id="f-ovr" type="number" min="1" max="99" value="${p.ovr||60}"></label><label>Potential<input id="f-pot" type="number" min="1" max="99" value="${p.potential||75}"></label><label>Tinggi cm<input id="f-height" type="number" value="${p.height||175}"></label><label>Berat kg<input id="f-weight" type="number" value="${p.weight||70}"></label><label>Kaki<select id="f-foot"><option ${p.foot==='Kanan'?'selected':''}>Kanan</option><option ${p.foot==='Kiri'?'selected':''}>Kiri</option></select></label><label>URL Foto<input id="f-image" value="${p.imageUrl||''}" placeholder="https://..."></label></div>`;}
-function openPlayerAdmin(id=null){const p=id?player(id):null;modal(p?'Edit Pemain':'Tambah Pemain',playerForm(p||{}),`<button data-close-modal class="ghost">Batal</button><button id="save-player" class="primary">Simpan</button>`);$('#save-player').onclick=()=>{const data={name:$('#f-name').value.trim(),clubId:$('#f-club').value||null,nation:$('#f-nation').value,pos:$('#f-pos').value,age:Number($('#f-age').value),number:Number($('#f-number').value),ovr:Number($('#f-ovr').value),potential:Number($('#f-pot').value),height:Number($('#f-height').value),weight:Number($('#f-weight').value),foot:$('#f-foot').value,imageUrl:$('#f-image').value};if(!data.name)return toast('Nama pemain jangan dikosongin, nanti komentator manggil “anu”.');if(p){Object.assign(p,data);p.value=playerValue(p.ovr,p.age,p.potential);p.attributes=calcAttributes(p.ovr,p.pos);}else state.players.push(makePlayer(data.name,data.clubId,data.nation,data.pos,data.age,data.ovr,data.potential,data));closeModal();saveState();render();};}
-function clubForm(c={}){return `<div class="form-grid"><label>Nama<input id="c-name" value="${c.name||''}"></label><label>Singkatan<input id="c-short" value="${c.short||''}"></label><label>Liga<select id="c-league">${['Liga 1','Premier League','La Liga'].map(x=>`<option ${c.league===x?'selected':''}>${x}</option>`).join('')}</select></label><label>Reputasi<input id="c-rep" type="number" min="1" max="99" value="${c.reputation||60}"></label><label>Saldo<input id="c-balance" type="number" value="${c.balance||50000000000}"></label><label>Budget Transfer<input id="c-budget" type="number" value="${c.transferBudget||10000000000}"></label><label>Stadion<input id="c-stadium" value="${c.stadium||''}"></label><label>Kapasitas<input id="c-capacity" type="number" value="${c.capacity||10000}"></label></div>`;}
-function openClubAdmin(id=null){const c=id?club(id):null;modal(c?'Edit Klub':'Tambah Klub',clubForm(c||{}),`<button data-close-modal class="ghost">Batal</button><button id="save-club" class="primary">Simpan</button>`);$('#save-club').onclick=()=>{const data={name:$('#c-name').value.trim(),short:$('#c-short').value.trim(),league:$('#c-league').value,reputation:Number($('#c-rep').value),balance:Number($('#c-balance').value),transferBudget:Number($('#c-budget').value),stadium:$('#c-stadium').value,capacity:Number($('#c-capacity').value)};if(c)Object.assign(c,data);else{const nc=makeClub(uid('club'),data.name,data.short,data.league,data.reputation,data.balance,data.stadium,data.capacity,1000000);Object.assign(nc,data);state.clubs.push(nc);state.tables[data.league].push({clubId:nc.id,p:0,w:0,d:0,l:0,gf:0,ga:0,gd:0,pts:0});}closeModal();saveState();render();};}
-function staffForm(s={}){return `<div class="form-grid"><label>Nama<input id="s-name" value="${s.name||''}"></label><label>Klub<select id="s-club"><option value="">Free Agent</option>${state.clubs.map(c=>`<option value="${c.id}" ${s.clubId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></label><label>Role<select id="s-role">${STAFF_ROLES.map(x=>`<option ${s.role===x?'selected':''}>${x}</option>`).join('')}</select></label><label>Rating<input id="s-rating" type="number" min="1" max="99" value="${s.rating||60}"></label><label>Bintang<input id="s-stars" type="number" step="0.5" min="0.5" max="5" value="${s.stars||3}"></label><label>Gaji<input id="s-salary" type="number" value="${s.salary||50000000}"></label></div>`;}
-function openStaffAdmin(id=null){const s=id?state.staffs.find(x=>x.id===id):null;modal(s?'Edit Staf':'Tambah Staf',staffForm(s||{}),`<button data-close-modal class="ghost">Batal</button><button id="save-staff" class="primary">Simpan</button>`);$('#save-staff').onclick=()=>{const data={name:$('#s-name').value,clubId:$('#s-club').value||null,role:$('#s-role').value,rating:Number($('#s-rating').value),stars:Number($('#s-stars').value),salary:Number($('#s-salary').value)};if(s)Object.assign(s,data);else{const ns=makeStaff(data.clubId,data.role,data.rating);Object.assign(ns,data);state.staffs.push(ns);}closeModal();saveState();render();};}
-
-function renderSave(){
-  const slots=Array.from({length:10},(_,i)=>{let data=null;try{data=JSON.parse(storage.getItem(SLOT_PREFIX+(i+1)));}catch(e){}return {n:i+1,data};});
-  return `${pageHead('Save & Data','10 slot manual, autosave lokal, ekspor-impor JSON. Karena kehilangan save 30 musim bisa mengubah manusia jadi penjahat.',`<button id="export-save" class="primary">Ekspor JSON</button><label class="btn ghost">Impor JSON<input id="import-save" type="file" accept="application/json" hidden></label>`)}
-  <div class="grid grid-2"><section class="card"><h3>Pengaturan Karier</h3><div class="form-grid"><label>Nama Manajer<input id="manager-name" value="${state.manager.name}"></label><label>Klub<select id="manager-club">${state.clubs.filter(c=>c.league==='Liga 1').map(c=>`<option value="${c.id}" ${c.id===state.manager.clubId?'selected':''}>${c.name}</option>`).join('')}</select></label><label>Kesulitan<select id="difficulty">${['Santai','Normal','Realistis','Brutal','Sandbox'].map(x=>`<option ${x===state.manager.difficulty?'selected':''}>${x}</option>`).join('')}</select></label><label>Efek Suara<select id="sound-setting"><option value="true" ${state.settings.sound?'selected':''}>Aktif</option><option value="false" ${!state.settings.sound?'selected':''}>Mati</option></select></label></div><div class="toolbar" style="margin-top:14px"><button id="save-settings" class="primary">Simpan Pengaturan</button><button id="reset-game" class="danger">Reset Database</button></div></section><section class="card"><h3>Informasi Build</h3><div class="list"><div class="list-row"><span>Versi</span><strong>${VERSION}</strong></div><div class="list-row"><span>Pemain</span><strong>${state.players.length}</strong></div><div class="list-row"><span>Klub</span><strong>${state.clubs.length}</strong></div><div class="list-row"><span>Staf</span><strong>${state.staffs.length}</strong></div><div class="list-row"><span>Penyimpanan</span><strong>LocalStorage / Offline</strong></div></div></section></div>
-  <section class="card" style="margin-top:14px"><h3>Slot Save Manual</h3><div class="grid grid-2">${slots.map(s=>`<div class="list-row"><div><strong>Slot ${s.n}</strong><div class="muted tiny">${s.data?`${s.data.manager?.name||'Manajer'} · Minggu ${s.data.week} · ${s.data.manager?.clubId?clubFromData(s.data,s.data.manager.clubId)?.name:''}`:'Kosong'}</div></div><div><button class="small primary" data-save-slot="${s.n}">Simpan</button> <button class="small" data-load-slot="${s.n}" ${s.data?'':'disabled'}>Muat</button> <button class="small danger" data-delete-slot="${s.n}" ${s.data?'':'disabled'}>Hapus</button></div></div>`).join('')}</div></section>`;
-}
-function clubFromData(data,id){return data.clubs?.find(c=>c.id===id);}
-function exportSave(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`FFU_${state.manager.name.replace(/\s+/g,'_')}_week_${state.week}.json`;a.click();URL.revokeObjectURL(a.href);}
-function importSave(file){const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);if(!data.clubs||!data.players)throw new Error('invalid');state=data;state.version=VERSION;saveState();render();toast('Save berhasil diimpor. Semesta sepak bola dipulihkan.');}catch(e){toast('File save nggak valid. Jangan impor skripsi ke game, tolol.');}};reader.readAsText(file);}
-
-function advanceWeek(){
-  if(matchRuntime)return toast('Pertandingan lagi jalan. Jangan time travel pas bola masih ditendang.');
-  // Simulate current Liga 1 week, excluding already played.
-  state.fixtures.filter(f=>f.week===state.week&&!f.played).forEach(f=>{const hp=teamPower(f.homeId)+3,ap=teamPower(f.awayId);const hg=simulateGoals(hp,ap),ag=simulateGoals(ap,hp);f.played=true;f.homeGoals=hg;f.awayGoals=ag;applyResult(f);});
-  // Lightweight foreign league simulation.
-  ['Premier League','La Liga'].forEach(l=>simulateForeignRound(l));
-  // Development, decline, fatigue recovery, injuries.
-  state.players.forEach(p=>{
-    p.stamina=clamp(p.stamina+rand(7,17),0,100);p.fitness=clamp(p.fitness+rand(3,8),0,100);p.form=clamp(p.form+rand(-4,4),35,99);p.morale=clamp(p.morale+rand(-3,4),25,100);
-    if(p.injury){p.injury.weeks--;if(p.injury.weeks<=0)p.injury=null;}
-    if(Math.random()<.006)p.injury={type:pick(['Cedera hamstring','Pergelangan kaki','Benturan lutut','Otot paha']),weeks:rand(1,6)};
-    const devChance=p.age<=27?Math.max(0,p.potential-p.ovr)/2500:-(p.age-27)/4000;
-    if(Math.random()<Math.abs(devChance)){p.ovr=clamp(p.ovr+(devChance>0?1:-1),25,99);p.value=playerValue(p.ovr,p.age,p.potential);p.attributes=calcAttributes(p.ovr,p.pos);}
-  });
-  const c=managerClub(); const ticket=Math.round(c.capacity*(.45+c.reputation/200)*rand(90000,300000)); const merch=Math.round(c.fans*(c.reputation/100)*rand(1200,4500)); const wages=clubPlayers().reduce((a,p)=>a+p.wage/4,0)+state.staffs.filter(s=>s.clubId===c.id).reduce((a,s)=>a+s.salary/4,0);
-  c.balance+=ticket+merch-wages;state.transactions.push({id:uid('tx'),date:state.date,type:'income',category:'Tiket & merchandise',amount:ticket+merch,note:c.name});state.transactions.push({id:uid('tx'),date:state.date,type:'expense',category:'Gaji mingguan',amount:Math.round(wages),note:c.name});
-  state.week++; const d=new Date(state.date);d.setDate(d.getDate()+7);state.date=d.toISOString().slice(0,10); state.news.push({id:uid('n'),week:state.week,title:'Pekan baru dimulai',body:`Laporan keuangan: pemasukan ${money(ticket+merch)}, gaji ${money(wages)}.`});if(state.news.length>40)state.news=state.news.slice(-40);saveState();render();toast(`Maju ke minggu ${state.week}. Kalender selamat, dompet belum tentu.`);
-}
-function simulateGoals(att,def){let goals=0;const chances=clamp(Math.round(8+(att-def)/3),4,15);for(let i=0;i<chances;i++)if(Math.random()<clamp(.09+(att-def)/300,.04,.28))goals++;return clamp(goals,0,7);}
-function simulateForeignRound(league){const rows=state.tables[league],ids=rows.map(r=>r.clubId).sort(()=>Math.random()-.5);for(let i=0;i<ids.length;i+=2){const h=ids[i],a=ids[i+1];if(!a)continue;const fx={homeId:h,awayId:a,homeGoals:simulateGoals(teamPower(h)+3,teamPower(a)),awayGoals:simulateGoals(teamPower(a),teamPower(h))};applyResult(fx);}}
-
-function bindPage(){
-  $$('[data-route-jump]').forEach(b=>b.onclick=()=>nav(b.dataset.routeJump));
-  $$('[data-player-detail]').forEach(b=>b.onclick=()=>showPlayerDetail(b.dataset.playerDetail));
-  $$('[data-sell-player]').forEach(b=>b.onclick=()=>sellPlayer(b.dataset.sellPlayer));
-  $$('[data-buy-player]').forEach(b=>b.onclick=()=>offerPlayer(b.dataset.buyPlayer));
-  $$('[data-scout]').forEach(b=>b.onclick=()=>scoutPlayer(b.dataset.scout));
-  $$('[data-hire-staff]').forEach(b=>b.onclick=()=>hireStaff(b.dataset.hireStaff));
-  $$('[data-fire-staff]').forEach(b=>b.onclick=()=>fireStaff(b.dataset.fireStaff));
-  if($('#squad-search')){const fn=()=>filterRows('#squad-table [data-player-row]',$('#squad-search').value,$('#squad-pos').value);$('#squad-search').oninput=fn;$('#squad-pos').onchange=fn;}
-  if($('#transfer-search')){const fn=()=>filterRows('#transfer-table [data-transfer-row]',$('#transfer-search').value,$('#transfer-pos').value);$('#transfer-search').oninput=fn;$('#transfer-pos').onchange=fn;}
-  if($('#staff-search'))$('#staff-search').oninput=()=>filterRows('[data-staff-row]',$('#staff-search').value,'');
-  if($('#admin-search'))$('#admin-search').oninput=()=>filterRows('[data-admin-row]',$('#admin-search').value,'');
-  ['mentality','tempo','pressing','width'].forEach(id=>{const el=$('#'+id);if(el)el.onchange=()=>{state.tactics[id]=el.value;saveState();};}); if($('#def-line'))$('#def-line').onchange=()=>{state.tactics.line=$('#def-line').value;saveState();};
-  $$('[data-drag-player]').forEach(el=>{el.ondragstart=e=>e.dataTransfer.setData('text/plain',el.dataset.dragPlayer);el.ondragover=e=>e.preventDefault();el.ondrop=e=>{e.preventDefault();const from=e.dataTransfer.getData('text/plain'),to=el.dataset.dragPlayer;if(from===to)return;swapLineup(from,to);};});
-  if($('#start-match'))$('#start-match').onclick=startMatch;
-  if($('#pause-match'))$('#pause-match').onclick=()=>{if(!matchRuntime)return;matchRuntime.paused=!matchRuntime.paused;$('#pause-match').textContent=matchRuntime.paused?'Lanjutkan':'Pause';};
-  if($('#match-speed'))$('#match-speed').onchange=()=>{if(matchRuntime){matchRuntime.speed=Number($('#match-speed').value);runMatchTimer();}};
-  $$('[data-league-tab]').forEach(b=>b.onclick=()=>{renderCompetitions.active=b.dataset.leagueTab;render();});
-  $$('[data-admin-tab]').forEach(b=>b.onclick=()=>{renderAdmin.active=b.dataset.adminTab;render();});
-  if($('#admin-add'))$('#admin-add').onclick=()=>{const t=renderAdmin.active||'players';t==='players'?openPlayerAdmin():t==='clubs'?openClubAdmin():openStaffAdmin();};
-  $$('[data-admin-edit-player]').forEach(b=>b.onclick=()=>openPlayerAdmin(b.dataset.adminEditPlayer));
-  $$('[data-admin-edit-club]').forEach(b=>b.onclick=()=>openClubAdmin(b.dataset.adminEditClub));
-  $$('[data-admin-edit-staff]').forEach(b=>b.onclick=()=>openStaffAdmin(b.dataset.adminEditStaff));
-  $$('[data-admin-delete-player]').forEach(b=>b.onclick=()=>deleteEntity('player',b.dataset.adminDeletePlayer));
-  $$('[data-admin-delete-club]').forEach(b=>b.onclick=()=>deleteEntity('club',b.dataset.adminDeleteClub));
-  $$('[data-admin-delete-staff]').forEach(b=>b.onclick=()=>deleteEntity('staff',b.dataset.adminDeleteStaff));
-  if($('#export-save'))$('#export-save').onclick=exportSave;if($('#import-save'))$('#import-save').onchange=e=>e.target.files[0]&&importSave(e.target.files[0]);
-  $$('[data-save-slot]').forEach(b=>b.onclick=()=>{storage.setItem(SLOT_PREFIX+b.dataset.saveSlot,JSON.stringify(state));render();toast(`Slot ${b.dataset.saveSlot} disimpan.`);});
-  $$('[data-load-slot]').forEach(b=>b.onclick=()=>{const raw=storage.getItem(SLOT_PREFIX+b.dataset.loadSlot);if(raw){state=JSON.parse(raw);saveState();render();toast(`Slot ${b.dataset.loadSlot} dimuat.`);}});
-  $$('[data-delete-slot]').forEach(b=>b.onclick=()=>{storage.removeItem(SLOT_PREFIX+b.dataset.deleteSlot);render();});
-  if($('#save-settings'))$('#save-settings').onclick=()=>{state.manager.name=$('#manager-name').value;state.manager.clubId=$('#manager-club').value;state.manager.difficulty=$('#difficulty').value;state.settings.sound=$('#sound-setting').value==='true';state.tactics.lineup=[];saveState();render();toast('Pengaturan disimpan.');};
-  if($('#reset-game'))$('#reset-game').onclick=()=>{modal('Reset Database?',`<p>Semua progres autosave akan hilang. Slot manual tetap aman. Keputusan brutal, tapi lu admin.</p>`,`<button data-close-modal class="ghost">Batal</button><button id="confirm-reset" class="danger">Reset Sekarang</button>`);$('#confirm-reset').onclick=()=>{state=buildInitialState();saveState();closeModal();nav('dashboard');};};
-  $$('[data-action="negotiate-sponsor"]').forEach(b=>b.onclick=negotiateSponsor);
-  $$('[data-action="new-career"]').forEach(b=>b.onclick=()=>nav('save'));
-}
-function filterRows(sel,q,pos){q=(q||'').toLowerCase();$$(sel).forEach(r=>r.classList.toggle('hidden',!(r.dataset.name||'').includes(q)||(pos&&r.dataset.pos!==pos)));}
-function swapLineup(a,b){const lists=[state.tactics.lineup,state.tactics.bench];let la,ia,lb,ib;lists.forEach(l=>{const i=l.indexOf(a);if(i>=0){la=l;ia=i;}const j=l.indexOf(b);if(j>=0){lb=l;ib=j;}});if(la&&lb){la[ia]=b;lb[ib]=a;saveState();render();}}
-function deleteEntity(type,id){
-  const labels={player:'pemain',club:'klub',staff:'staf'};modal(`Hapus ${labels[type]}?`,`<p>Data akan dihapus permanen dari autosave. Seperti karier pemain setelah tiga kartu merah, nggak enak tapi bisa.</p>`,`<button data-close-modal class="ghost">Batal</button><button id="confirm-delete" class="danger">Hapus</button>`);$('#confirm-delete').onclick=()=>{if(type==='player')state.players=state.players.filter(x=>x.id!==id);if(type==='staff')state.staffs=state.staffs.filter(x=>x.id!==id);if(type==='club'){if(id===state.manager.clubId)return toast('Jangan hapus klub yang sedang lu latih, dongo. Ganti klub dulu.');state.clubs=state.clubs.filter(x=>x.id!==id);state.players=state.players.filter(x=>x.clubId!==id);state.staffs=state.staffs.filter(x=>x.clubId!==id);Object.values(state.tables).forEach(t=>{const i=t.findIndex(x=>x.clubId===id);if(i>=0)t.splice(i,1);});}closeModal();saveState();render();};
-}
-
-$$('.nav-item').forEach(b=>b.addEventListener('click',()=>b.dataset.route&&nav(b.dataset.route)));
-$('#advance-week').onclick=advanceWeek;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;$('#install-btn').classList.remove('hidden');});
-$('#install-btn').onclick=async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('#install-btn').classList.add('hidden');};
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
-render();
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(console.warn);
+  renderNav();updateShell();renderView();if(!state.hasOnboarded)setTimeout(showOnboarding,150);
+})();

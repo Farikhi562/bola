@@ -1,23 +1,12 @@
 {
-  "name": "Farikhi Football Universe v12.1.0",
-  "short_name": "FFU v12.1",
-  "id": "./?v=12.1.0",
-  "start_url": "/",
-  "scope": "/",
+  "name": "Farikhi Football Universe",
+  "short_name": "FFU 25/26",
+  "start_url": "./index.html",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
-  "orientation": "any",
-  "background_color": "#030711",
-  "theme_color": "#28d17c",
-  "description": "Game manajer bola PWA dengan cinematic matchday, animasi 2D adaptif, replay, seremoni, klub AI hidup, transfer, media, medis, akademi, dan karier lengkap.",
-  "categories": ["games", "sports"],
+  "background_color": "#050a08",
+  "theme_color": "#07120d",
+  "description": "Game manajer sepak bola PWA musim 2025/26.",
   "icons": [
-    {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
-  ],
-  "shortcuts": [
-    {"name":"Cinematic Match Centre","short_name":"Match","url":"/?route=match","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"}]},
-    {"name":"Transfer Market","short_name":"Transfer","url":"/?route=transfer","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"}]},
-    {"name":"Skuad","short_name":"Skuad","url":"/?route=squad","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"}]}
+    {"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
   ]
 }
