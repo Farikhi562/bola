@@ -1,8 +1,8 @@
 {
   "name": "Farikhi Football Universe",
-  "version": "4.1.0",
+  "version": "5.0.0",
   "buildDate": "2026-07-16",
-  "deployment": "Vercel static PWA root package",
+  "deployment": "Vercel static PWA built to dist/",
   "features": [
     "dashboard",
     "squad",
@@ -24,6 +24,13 @@
     "admin-editor",
     "five-save-slots",
     "json-import-export",
-    "offline-pwa"
+    "offline-pwa",
+    "round-robin-fixtures",
+    "weather-and-pitch",
+    "ai-world-simulation",
+    "medical-risk",
+    "weekly-contracts",
+    "travel-fatigue",
+    "attendance-gate-receipts"
   ]
 }

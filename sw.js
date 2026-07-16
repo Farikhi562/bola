@@ -1,8 +1,8 @@
-const VERSION='4.1.0';
+const VERSION='5.0.0';
 const STATIC_CACHE=`ffu-static-${VERSION}`;
 const RUNTIME_CACHE=`ffu-runtime-${VERSION}`;
 const IMAGE_CACHE='ffu-player-images-v2';
-const APP_SHELL=['/','/index.html','/styles.css?v=4.1.0','/data.js?v=4.1.0','/assets/three.min.js?v=4.1.0','/match3d.js?v=4.1.0','/career-v4.js?v=4.1.0','/app.js?v=4.1.0','/manifest.webmanifest?v=4.1.0','/assets/icon-192.png','/assets/icon-512.png','/assets/icon-maskable-512.png'];
+const APP_SHELL=['/','/index.html','/styles.css?v=5.0.0','/data.js?v=5.0.0','/assets/three.min.js?v=5.0.0','/match3d.js?v=5.0.0','/career-v4.js?v=5.0.0','/realism-v5.js?v=5.0.0','/app.js?v=5.0.0','/manifest.webmanifest?v=5.0.0','/assets/icon-192.png','/assets/icon-512.png','/assets/icon-maskable-512.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(STATIC_CACHE).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));

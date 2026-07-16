@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '4.1.0';
+  const VERSION = '5.0.0';
   const STORAGE_PREFIX = 'ffu-save-';
   const ACTIVE_SLOT_KEY = 'ffu-active-slot';
   const PHOTO_CACHE_KEY = 'ffu-photo-cache-v1';
@@ -50,6 +50,7 @@
     };
     ensureLineup(state, persija.id);
     window.FFU4?.seedState?.(state);
+    window.FFU5?.seedState?.(state);
     return state;
   }
 
@@ -71,6 +72,7 @@
     if(!state.shortlist) state.shortlist=[];
     if(!state.matchHistory) state.matchHistory=[];
     window.FFU4?.migrate?.(state);
+    window.FFU5?.migrate?.(state);
     state.version=VERSION;
     activeSlot=state.activeSlot||activeSlot;
     ensureLineup(state,state.selectedClubId);
@@ -370,7 +372,8 @@
     finish(){
       if(this.finished)return;this.finished=true;this.running=false;clearTimeout(this.tickTimer);this.addComment(90,`Full time: ${this.home.name} ${this.homeScore}-${this.awayScore} ${this.away.name}.`,'goal');this.showBanner('FULL TIME','neutral',1800);playSound('whistle');
       const result={date:state.date,home:this.home.name,away:this.away.name,homeScore:this.homeScore,awayScore:this.awayScore,score:`${this.homeScore}-${this.awayScore}`,stats:{pos:[this.pos,100-this.pos],shots:this.shots,onTarget:this.onTarget,xg:this.xg,passes:this.passes,tackles:this.tackles,corners:this.corners,cards:this.cards}};
-      state.matchHistory.unshift(result);updateStandingResult(this.home.id,this.away.id,this.homeScore,this.awayScore);this.updatePlayerRecords();state.news.unshift({title:`${this.home.name} ${this.homeScore}-${this.awayScore} ${this.away.name}`,meta:'Hasil pertandingan • Baru saja'});window.FFU4?.onMatchFinished?.(result);scheduleSave();toast('Pertandingan selesai. Statistik, morale, direksi, dan analytics sudah diperbarui.')
+      state.matchHistory.unshift(result);updateStandingResult(this.home.id,this.away.id,this.homeScore,this.awayScore);this.updatePlayerRecords();state.news.unshift({title:`${this.home.name} ${this.homeScore}-${this.awayScore} ${this.away.name}`,meta:'Hasil pertandingan • Baru saja'});window.FFU4?.onMatchFinished?.(result);
+      window.FFU5?.onMatchFinished?.(state,result);scheduleSave();toast('Pertandingan selesai. Statistik, morale, direksi, dan analytics sudah diperbarui.')
     }
     updatePlayerRecords(){
       const mods=this.tacticalMods();for(let team=0;team<2;team++){const xi=this.lineup(team),won=team===0?this.homeScore>this.awayScore:this.awayScore>this.homeScore,draw=this.homeScore===this.awayScore;for(const p of xi){p.stats ||= {apps:0,goals:0,assists:0,rating:0};p.advancedStats ||= {shots:0,keyPasses:0,tackles:0,passes:0,passPct:0,xG:0,xA:0};p.stats.apps++;const base=6.25+(won?.45:draw?.05:-.25)+(p.form-70)*.012+(Math.random()-.5)*.7;const goals=this.goalEvents.filter(e=>e.scorerId===p.id).length,assists=this.goalEvents.filter(e=>e.assistId===p.id).length;p.stats.goals+=goals;p.stats.assists+=assists;const rating=clamp(base+goals*.85+assists*.45,4.5,10);p.stats.rating=Number(((p.stats.rating*(p.stats.apps-1)+rating)/p.stats.apps).toFixed(2));p.advancedStats.passes+=Math.round(this.passes[team]/Math.max(1,xi.length));p.advancedStats.passPct=Math.round(this.completed[team]/Math.max(1,this.passes[team])*100);p.advancedStats.tackles+=Math.round(this.tackles[team]/Math.max(1,xi.length));p.advancedStats.xA+=assists*.22;p.fitness=clamp(p.fitness-(team===0?8-Math.min(3,mods.homeStamina||0):7)-randFrom(p.id+this.minute,0,4),35,100);p.form=clamp(p.form+(won?3:draw?0:-2)+goals*2+assists,45,99)}}
@@ -496,6 +499,7 @@
     state.week++;const d=new Date(state.date+'T12:00:00');d.setDate(d.getDate()+7);state.date=d.toISOString().slice(0,10);
     const userPlayers=currentPlayers();for(const p of state.players){p.fitness=Math.min(100,p.fitness+randFrom(p.id+state.week,2,9));p.form=clamp(p.form+randFrom(p.id+'f'+state.week,-3,3),45,99);if(p.age<=27&&p.overall<p.potential&&randFrom(p.id+'grow'+state.week,1,100)<=Math.max(4,(p.potential-p.overall)*.8)){p.overall++;for(const k of Object.keys(p.attributes))if(randFrom(p.id+k+state.week,1,100)<18)p.attributes[k]=clamp(p.attributes[k]+1,1,99)}else if(p.age>=31&&randFrom(p.id+'decline'+state.week,1,100)<(p.age-29)*4){p.overall=Math.max(45,p.overall-1);const keys=Object.keys(p.attributes);const k=keys[randFrom(p.id+'dk'+state.week,0,keys.length-1)];p.attributes[k]=Math.max(35,p.attributes[k]-1)}}
     window.FFU4?.onAdvanceWeek?.(state);
+    window.FFU5?.onAdvanceWeek?.(state);
     const commercialBoost=1+((state.facilities?.commercial?.level||1)-1)*.05;
     const stadiumBoost=1+((state.facilities?.stadium?.level||1)-1)*.035;
     const income=Math.round((1_200_000_000+currentClub().reputation*18_000_000)*commercialBoost*stadiumBoost);const wages=userPlayers.reduce((s,p)=>s+p.wage,0);updateFunds(income-wages);state.transactions.unshift({id:cryptoId(),date:state.date,type:'Sponsor, tiket, merchandise & hak siar',amount:income},{id:cryptoId(),date:state.date,type:'Gaji mingguan pemain dan staf',amount:-wages});simulateOtherLeagues();state.news.unshift({title:`Pekan ${state.week}: laporan latihan dan finansial tersedia`,meta:'Klub • Baru saja'});saveNow(false);playSound('click');toast(`Masuk pekan ${state.week}. Kalender dan perkembangan pemain diperbarui.`);renderView();
@@ -614,8 +618,8 @@
         });
       });
       navigator.serviceWorker.addEventListener('controllerchange',()=>{
-        if(sessionStorage.getItem('ffu-reloaded-4.1.0'))return;
-        sessionStorage.setItem('ffu-reloaded-4.1.0','1'); location.reload();
+        if(sessionStorage.getItem('ffu-reloaded-5.0.0'))return;
+        sessionStorage.setItem('ffu-reloaded-5.0.0','1'); location.reload();
       });
     }catch(err){console.warn('[FFU PWA] Service worker gagal',err)}
   }

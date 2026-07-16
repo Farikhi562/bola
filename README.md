@@ -1,4 +1,4 @@
-# Farikhi Football Universe v4.1.0 — Career Universe
+# Farikhi Football Universe v5.0.0 — Career Universe
 
 Game manajer sepak bola PWA offline-first buatan Muhamad Fauzan Al Farikhi. Versi v4 mengubah fondasi game dari sekadar skuad + pertandingan menjadi simulasi karier mingguan yang saling terhubung: taktik memengaruhi match engine, latihan memengaruhi perkembangan dan cedera, fasilitas memengaruhi akademi serta pemulihan, sementara media, ruang ganti, direksi, dan transfer ikut menentukan nasib manajer.
 
@@ -17,7 +17,7 @@ Game manajer sepak bola PWA offline-first buatan Muhamad Fauzan Al Farikhi. Vers
 
 Jangan membuka `index.html` langsung lewat `file://`. Service worker, cache offline, dan beberapa fitur browser memang memerlukan server lokal. Browser punya aturan sendiri, sebab manusia rupanya belum cukup punya birokrasi.
 
-## Update besar v4.1.0
+## Update besar v5.0.0
 
 ### Match Engine Taktis v2
 - Peluang dihitung dari kualitas XI, fitness, morale, cohesion, atribut posisi, dan instruksi taktik.
@@ -111,7 +111,7 @@ Nama klub dan pemain dipakai sebagai seed permainan pribadi. Sebagian atribut, h
 - `sw.js` — cache PWA dan dukungan offline.
 
 
-## Hotfix v4.1.0
+## Hotfix v5.0.0
 - Paket Vercel sekarang flat di root, bukan folder bersarang.
 - `vercel.json` disertakan.
 - Cache service worker memakai network-first untuk JS/CSS agar update tidak nyangkut di v3.
