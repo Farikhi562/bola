@@ -383,8 +383,9 @@
 
     playEvent(type, team) {
       const now = performance.now();
-      const direction = team === 0 ? 1 : -1;
-      const duration = type === 'goal' ? 1850 : type === 'shot' ? 1050 : 900;
+      const attackingEvent = ['goal', 'shot', 'corner', 'counter'].includes(type);
+      const direction = type === 'save' ? (team === 0 ? -1 : 1) : (team === 0 ? 1 : -1);
+      const duration = type === 'goal' ? 2050 : type === 'shot' || type === 'save' ? 1150 : type === 'tackle' ? 780 : 900;
       this.event = {
         type,
         team,
@@ -392,9 +393,12 @@
         start: now,
         duration,
         from: { ...this.lastBall },
-        to: {
+        to: attackingEvent || type === 'save' ? {
           x: direction * 52.2,
           z: clamp(this.lastBall.z * 0.45 + (Math.random() - 0.5) * 5, -3.2, 3.2)
+        } : {
+          x: clamp(this.lastBall.x + direction * 5, -45, 45),
+          z: clamp(this.lastBall.z + (Math.random() - 0.5) * 5, -30, 30)
         }
       };
     }
@@ -468,7 +472,30 @@
         mesh.rightArm.rotation.z = -stride * 0.65;
         mesh.leftLeg.rotation.z = -stride * 0.55;
         mesh.rightLeg.rotation.z = stride * 0.55;
+        mesh.leftArm.rotation.x = lerp(mesh.leftArm.rotation.x, 0, 0.18);
+        mesh.rightArm.rotation.x = lerp(mesh.rightArm.rotation.x, 0, 0.18);
+        mesh.group.rotation.z = lerp(mesh.group.rotation.z, 0, 0.18);
         mesh.group.position.y = Math.abs(stride) * 0.035;
+        if (this.event) {
+          const ep = clamp((time - this.event.start) / this.event.duration, 0, 1);
+          if (this.event.type === 'goal' && p.team === this.event.team && p.index >= 8) {
+            const cheer = Math.sin(Math.PI * ep);
+            mesh.leftArm.rotation.x = -2.35 * cheer;
+            mesh.rightArm.rotation.x = -2.35 * cheer;
+            mesh.group.position.y += Math.abs(Math.sin(ep * Math.PI * 5)) * 0.28;
+          }
+          if (this.event.type === 'save' && p.team === this.event.team && p.index === 0) {
+            const dive = Math.sin(Math.PI * ep);
+            mesh.group.rotation.z = (this.event.team === 0 ? -1 : 1) * 1.12 * dive;
+            mesh.group.position.z += (this.event.to.z - mesh.group.position.z) * ep * 0.35;
+            mesh.leftArm.rotation.x = -1.7 * dive;
+            mesh.rightArm.rotation.x = -1.7 * dive;
+          }
+          if (this.event.type === 'tackle' && p.team === this.event.team && p.index >= 1 && p.index <= 4) {
+            mesh.group.rotation.z = Math.sin(Math.PI * ep) * 0.55;
+            mesh.rightLeg.rotation.z += Math.sin(Math.PI * ep) * 1.25;
+          }
+        }
         mesh.lastX = worldX;
         mesh.lastZ = worldZ;
       });
@@ -481,7 +508,8 @@
         const e = ease(p);
         ballX = lerp(this.event.from.x, this.event.to.x, e);
         ballZ = lerp(this.event.from.z, this.event.to.z, e);
-        ballY = 0.48 + Math.sin(Math.PI * p) * (this.event.type === 'goal' ? 4.8 : 3.2);
+        const arc = this.event.type === 'goal' ? 4.8 : this.event.type === 'save' ? 2.1 : this.event.type === 'tackle' ? 0.5 : 3.2;
+        ballY = 0.48 + Math.sin(Math.PI * p) * arc;
         if (p >= 1) this.event = null;
       }
       this.lastBall.x = ballX;

@@ -1,0 +1,11 @@
+DEPLOY VERCEL (PENTING)
+
+1. Upload ISI folder ini sebagai project root. Jangan upload folder induk yang masih membungkus folder lain.
+2. Framework Preset: Other.
+3. Build Command: kosong.
+4. Output Directory: kosong atau titik (.).
+5. Deploy.
+6. Setelah deploy, buka sekali dengan query ?fresh=1 lalu refresh. Service worker v4.1 akan menghapus cache versi lama.
+7. Kalau domain sebelumnya pernah memasang v3: Chrome > Site settings > Storage > Clear site data, lalu buka ulang.
+
+File vercel.json sudah mengatur header service worker, manifest PWA, dan fallback routing.
